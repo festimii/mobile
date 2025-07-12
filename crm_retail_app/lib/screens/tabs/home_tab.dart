@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../metric_detail_screen.dart';
+import '../store_detail_screen.dart';
 
 /// Model representing a quick metric shown at the top of the dashboard.
 
@@ -205,32 +206,10 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
   StoreFilter filter = StoreFilter.all;
 
   void _showStoreDetails(StoreSales sales) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              sales.store,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text('Last year: €${sales.lastYear.toStringAsFixed(2)}'),
-            Text('This year: €${sales.thisYear.toStringAsFixed(2)}'),
-            Text('Change: ${sales.percentChange.toStringAsFixed(1)}%'),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StoreDetailScreen(sales: sales),
       ),
     );
   }
