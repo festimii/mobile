@@ -1,0 +1,15 @@
+name: crm_retail_app
+description: A CRM system for retail markets.
+version: 1.0.0
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  fl_chart: ^0.64.0
+  provider: ^6.1.0
+
+flutter:
+  uses-material-design: true
