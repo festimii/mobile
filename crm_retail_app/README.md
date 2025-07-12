@@ -1,6 +1,12 @@
 # crm_retail_app
 
-A new Flutter project.
+A mobile CRM built with Flutter.
+
+## Features
+
+- Summary cards for key metrics
+- Monthly sales line chart
+- Store performance table with drill-down details
 
 ## Getting Started
 

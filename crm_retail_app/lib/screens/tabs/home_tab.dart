@@ -82,6 +82,39 @@ class StoreSales {
   double get percentChange => ((thisYear - lastYear) / lastYear) * 100;
 }
 
+class SalesTrendChart extends StatelessWidget {
+  final List<FlSpot> data;
+
+  const SalesTrendChart({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: 180,
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(show: false),
+          borderData: FlBorderData(show: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: data,
+              color: theme.primaryColor,
+              isCurved: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                color: theme.primaryColor.withOpacity(0.2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class StoreSalesTable extends StatefulWidget {
   final List<StoreSales> salesData;
 
@@ -96,6 +129,30 @@ class _StoreSalesTableState extends State<StoreSalesTable>
   String? selectedFilter = 'All';
 
   List<String> filters = ['All', 'Positive', 'Negative'];
+
+  void _showDetails(BuildContext context, StoreSales sale) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Details - ${sale.store}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Last year: €${sale.lastYear.toStringAsFixed(2)}'),
+            Text('This year: €${sale.thisYear.toStringAsFixed(2)}'),
+            Text('Change: ${sale.percentChange.toStringAsFixed(1)}%'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +196,7 @@ class _StoreSalesTableState extends State<StoreSalesTable>
                     color: MaterialStateProperty.resolveWith<Color?>(
                       (_) => isNegative ? Colors.red.withOpacity(0.05) : null,
                     ),
+                    onSelectChanged: (_) => _showDetails(context, s),
                     cells: [
                       DataCell(
                         AnimatedOpacity(
@@ -159,3 +217,81 @@ class _StoreSalesTableState extends State<StoreSalesTable>
     );
   }
 }
+
+class HomeTab extends StatelessWidget {
+  HomeTab({super.key});
+
+  final List<SummaryMetric> metrics = [
+    SummaryMetric(
+      title: 'Total Sales',
+      value: '€12.5k',
+      icon: Icons.show_chart,
+      color: Colors.green,
+    ),
+    SummaryMetric(
+      title: 'Customers',
+      value: '430',
+      icon: Icons.people,
+      color: Colors.blue,
+    ),
+    SummaryMetric(
+      title: 'Open Orders',
+      value: '23',
+      icon: Icons.shopping_cart,
+      color: Colors.orange,
+    ),
+    SummaryMetric(
+      title: 'Avg. Ticket',
+      value: '€42.80',
+      icon: Icons.receipt_long,
+      color: Colors.purple,
+    ),
+  ];
+
+  final List<StoreSales> sampleSales = [
+    StoreSales(store: 'Downtown', lastYear: 18234, thisYear: 19540),
+    StoreSales(store: 'Mall', lastYear: 15500, thisYear: 14920),
+    StoreSales(store: 'Airport', lastYear: 9900, thisYear: 12200),
+  ];
+
+  final List<FlSpot> trendData = const [
+    FlSpot(1, 5),
+    FlSpot(2, 6.2),
+    FlSpot(3, 7.1),
+    FlSpot(4, 6.8),
+    FlSpot(5, 7.5),
+    FlSpot(6, 8.2),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: metrics.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.5,
+          ),
+          itemBuilder: (context, i) => SummaryCard(metric: metrics[i]),
+        ),
+        const SizedBox(height: 20),
+        Text('Monthly Sales', style: theme.textTheme.titleLarge),
+        const SizedBox(height: 8),
+        SalesTrendChart(data: trendData),
+        const SizedBox(height: 20),
+        Text('Store Performance', style: theme.textTheme.titleLarge),
+        const SizedBox(height: 8),
+        StoreSalesTable(salesData: sampleSales),
+      ],
+    );
+  }
+}
+
