@@ -68,6 +68,66 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
+class SalesSeries {
+  final String day;
+  final double sales;
+
+  SalesSeries(this.day, this.sales);
+}
+
+class SalesBarChart extends StatelessWidget {
+  final List<SalesSeries> data;
+
+  const SalesBarChart({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        barTouchData: BarTouchData(enabled: true),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, _) {
+                int index = value.toInt();
+                if (index >= 0 && index < data.length) {
+                  return Text(
+                    data[index].day,
+                    style: const TextStyle(fontSize: 10),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(show: false),
+        barGroups:
+            data.asMap().entries.map((entry) {
+              int x = entry.key;
+              double y = entry.value.sales;
+              return BarChartGroupData(
+                x: x,
+                barRods: [
+                  BarChartRodData(
+                    toY: y,
+                    width: 14,
+                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.teal,
+                  ),
+                ],
+              );
+            }).toList(),
+      ),
+    );
+  }
+}
+
 class StoreSales {
   final String store;
   final double lastYear;
@@ -82,49 +142,83 @@ class StoreSales {
   double get percentChange => ((thisYear - lastYear) / lastYear) * 100;
 }
 
+enum StoreFilter { all, positive, negative }
+
 class StoreSalesTable extends StatefulWidget {
   final List<StoreSales> salesData;
-  final void Function(StoreSales)? onRowTap;
 
-  const StoreSalesTable({
-    super.key,
-    required this.salesData,
-    this.onRowTap,
-  });
+  const StoreSalesTable({super.key, required this.salesData});
 
   @override
   State<StoreSalesTable> createState() => _StoreSalesTableState();
 }
 
-class _StoreSalesTableState extends State<StoreSalesTable>
-    with SingleTickerProviderStateMixin {
-  String? selectedFilter = 'All';
+class _StoreSalesTableState extends State<StoreSalesTable> {
+  bool sortAscending = false;
+  StoreFilter filter = StoreFilter.all;
 
-  List<String> filters = ['All', 'Positive', 'Negative'];
+  List<StoreSales> get filteredSortedData {
+    final filtered =
+        widget.salesData.where((s) {
+          switch (filter) {
+            case StoreFilter.positive:
+              return s.percentChange > 0;
+            case StoreFilter.negative:
+              return s.percentChange < 0;
+            default:
+              return true;
+          }
+        }).toList();
+
+    filtered.sort(
+      (a, b) =>
+          sortAscending
+              ? a.percentChange.compareTo(b.percentChange)
+              : b.percentChange.compareTo(a.percentChange),
+    );
+    return filtered;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    List<StoreSales> filtered = widget.salesData;
-    if (selectedFilter == 'Positive') {
-      filtered = filtered.where((e) => e.percentChange >= 0).toList();
-    } else if (selectedFilter == 'Negative') {
-      filtered = filtered.where((e) => e.percentChange < 0).toList();
-    }
-    filtered.sort((a, b) => a.percentChange.compareTo(b.percentChange));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DropdownButton<String>(
-          value: selectedFilter,
-          onChanged: (value) => setState(() => selectedFilter = value),
-          items:
-              filters
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
+        Row(
+          children: [
+            DropdownButton<StoreFilter>(
+              value: filter,
+              onChanged: (value) => setState(() => filter = value!),
+              items: const [
+                DropdownMenuItem(
+                  value: StoreFilter.all,
+                  child: Text("All Stores"),
+                ),
+                DropdownMenuItem(
+                  value: StoreFilter.positive,
+                  child: Text("Positive"),
+                ),
+                DropdownMenuItem(
+                  value: StoreFilter.negative,
+                  child: Text("Negative"),
+                ),
+              ],
+            ),
+            const SizedBox(width: 24),
+            Row(
+              children: [
+                const Text("Ascending"),
+                Switch(
+                  value: sortAscending,
+                  onChanged: (val) => setState(() => sortAscending = val),
+                ),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
@@ -138,26 +232,46 @@ class _StoreSalesTableState extends State<StoreSalesTable>
               DataColumn(label: Text('Change (%)')),
             ],
             rows:
-                filtered.map((s) {
-                  final isNegative = s.percentChange < 0;
+                filteredSortedData.map((s) {
+                  final pct = s.percentChange;
+                  final isPositive = pct > 0;
+                  final isNegative = pct < 0;
+
                   return DataRow(
                     color: MaterialStateProperty.resolveWith<Color?>(
-                      (_) => isNegative ? Colors.red.withOpacity(0.05) : null,
+                      (_) =>
+                          isNegative
+                              ? Colors.red.withOpacity(0.05)
+                              : isPositive
+                              ? Colors.green.withOpacity(0.05)
+                              : null,
                     ),
-                    onSelectChanged: widget.onRowTap == null
-                        ? null
-                        : (_) => widget.onRowTap!(s),
                     cells: [
-                      DataCell(
-                        AnimatedOpacity(
-                          opacity: 1.0,
-                          duration: const Duration(milliseconds: 800),
-                          child: Text(s.store),
-                        ),
-                      ),
+                      DataCell(Text(s.store)),
                       DataCell(Text('€${s.lastYear.toStringAsFixed(2)}')),
                       DataCell(Text('€${s.thisYear.toStringAsFixed(2)}')),
-                      DataCell(Text('${s.percentChange.toStringAsFixed(1)}%')),
+                      DataCell(
+                        Row(
+                          children: [
+                            Icon(
+                              isPositive
+                                  ? Icons.arrow_upward
+                                  : isNegative
+                                  ? Icons.arrow_downward
+                                  : Icons.remove,
+                              size: 14,
+                              color:
+                                  isPositive
+                                      ? Colors.green
+                                      : isNegative
+                                      ? Colors.red
+                                      : Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text('${pct.toStringAsFixed(1)}%'),
+                          ],
+                        ),
+                      ),
                     ],
                   );
                 }).toList(),
@@ -168,146 +282,141 @@ class _StoreSalesTableState extends State<StoreSalesTable>
   }
 }
 
-class Activity {
-  final String title;
-  final String time;
-
-  Activity({required this.title, required this.time});
-}
-
-class ActivityList extends StatelessWidget {
-  final List<Activity> activities;
-
-  const ActivityList({super.key, required this.activities});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: activities
-          .map(
-            (a) => ListTile(
-              leading: const Icon(Icons.notifications),
-              title: Text(a.title),
-              trailing: Text(a.time, style: theme.textTheme.bodySmall),
-            ),
-          )
-          .toList(),
-    );
-  }
-}
-
 class HomeTab extends StatelessWidget {
-  HomeTab({super.key});
-
-  final List<SummaryMetric> _metrics = [
-    SummaryMetric(
-        title: 'Total Sales',
-        value: '€120k',
-        icon: Icons.trending_up,
-        color: Colors.greenAccent),
-    SummaryMetric(
-        title: 'Active Customers',
-        value: '1,240',
-        icon: Icons.people,
-        color: Colors.blueAccent),
-    SummaryMetric(
-        title: 'New Leads',
-        value: '150',
-        icon: Icons.person_add,
-        color: Colors.orangeAccent),
-  ];
-
-  final List<StoreSales> _sales = [
-    StoreSales(store: 'Berlin', lastYear: 62000, thisYear: 68000),
-    StoreSales(store: 'Munich', lastYear: 54000, thisYear: 51000),
-    StoreSales(store: 'Paris', lastYear: 72000, thisYear: 75000),
-    StoreSales(store: 'Prague', lastYear: 39000, thisYear: 42000),
-  ];
-
-  final List<Activity> _activities = [
-    Activity(title: 'Call with James', time: '09:00'),
-    Activity(title: 'New order from Berlin', time: '10:30'),
-    Activity(title: 'Email Kate about invoice', time: '13:15'),
-  ];
-
-  List<FlSpot> get _trendPoints => [
-        const FlSpot(0, 50),
-        const FlSpot(1, 80),
-        const FlSpot(2, 70),
-        const FlSpot(3, 90),
-        const FlSpot(4, 110),
-      ];
-
-  void _showSaleDetails(BuildContext context, StoreSales sale) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(sale.store, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text('Last year: €${sale.lastYear.toStringAsFixed(2)}'),
-            Text('This year: €${sale.thisYear.toStringAsFixed(2)}'),
-            Text('Change: ${sale.percentChange.toStringAsFixed(1)}%'),
-          ],
-        ),
-      ),
-    );
-  }
+  const HomeTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final List<SummaryMetric> metrics = [
+      SummaryMetric(
+        title: 'Total Revenue',
+        value: '€12,430',
+        icon: Icons.attach_money,
+        color: Colors.green,
+      ),
+      SummaryMetric(
+        title: 'Transactions',
+        value: '845',
+        icon: Icons.shopping_cart_checkout,
+        color: Colors.blue,
+      ),
+      SummaryMetric(
+        title: 'Avg. Basket Size',
+        value: '€14.71',
+        icon: Icons.shopping_bag,
+        color: Colors.indigo,
+      ),
+      SummaryMetric(
+        title: 'Top Product',
+        value: 'Milk 1L',
+        icon: Icons.star,
+        color: Colors.amber,
+      ),
+      SummaryMetric(
+        title: 'Returns Today',
+        value: '12',
+        icon: Icons.undo,
+        color: Colors.redAccent,
+      ),
+      SummaryMetric(
+        title: 'Low Inventory',
+        value: '5 Items',
+        icon: Icons.inventory_2,
+        color: Colors.orange,
+      ),
+    ];
+
+    final List<SalesSeries> weekSales = [
+      SalesSeries('Mon', 200),
+      SalesSeries('Tue', 350),
+      SalesSeries('Wed', 280),
+      SalesSeries('Thu', 400),
+      SalesSeries('Fri', 500),
+      SalesSeries('Sat', 450),
+      SalesSeries('Sun', 320),
+    ];
+
+    final List<StoreSales> storeSales = List.generate(20, (i) {
+      return StoreSales(
+        store: 'VFS${i + 1}',
+        lastYear: 10000 + i * 600,
+        thisYear: 12000 + i * 650 - (i % 5 == 0 ? 3000 : 0),
+      );
+    });
+
+    final double cardWidth =
+        MediaQuery.of(context).size.width > 600
+            ? 260
+            : MediaQuery.of(context).size.width / 2 - 22;
+
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Metrics
-            Row(
-              children: _metrics
-                  .map((m) => Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: SummaryCard(metric: m),
-                        ),
-                      ))
-                  .toList(),
+            Text(
+              "Retail KPIs",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      color: theme.primaryColor,
-                      spots: _trendPoints,
-                      isCurved: true,
-                      dotData: const FlDotData(show: false),
-                    )
-                  ],
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children:
+                  metrics
+                      .map(
+                        (metric) => SizedBox(
+                          width: cardWidth,
+                          child: SummaryCard(metric: metric),
+                        ),
+                      )
+                      .toList(),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              "Weekly Sales Trend",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  height: 220,
+                  child: SalesBarChart(data: weekSales),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            Text('Sales by Store', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 10),
-            StoreSalesTable(
-              salesData: _sales,
-              onRowTap: (sale) => _showSaleDetails(context, sale),
+            const SizedBox(height: 32),
+            Text(
+              "Store Sales Comparison",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
             ),
-            const SizedBox(height: 20),
-            Text('Today', style: theme.textTheme.titleMedium),
-            ActivityList(activities: _activities),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: StoreSalesTable(salesData: storeSales),
+              ),
+            ),
           ],
         ),
       ),
