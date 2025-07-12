@@ -102,7 +102,9 @@ class SalesBarChart extends StatelessWidget {
         alignment: BarChartAlignment.spaceAround,
         barTouchData: BarTouchData(enabled: true),
         titlesData: FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -138,6 +140,44 @@ class SalesBarChart extends StatelessWidget {
                 ],
               );
             }).toList(),
+      ),
+    );
+  }
+}
+
+class SalesTrendCard extends StatelessWidget {
+  final List<SalesSeries> weekData;
+  final List<SalesSeries> hourData;
+
+  const SalesTrendCard({
+    super.key,
+    required this.weekData,
+    required this.hourData,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(
+            labelColor: Theme.of(context).primaryColor,
+            tabs: const [
+              Tab(text: 'Week'),
+              Tab(text: 'Hour'),
+            ],
+          ),
+          SizedBox(
+            height: 220,
+            child: TabBarView(
+              children: [
+                SalesBarChart(data: weekData),
+                SalesBarChart(data: hourData),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -394,6 +434,10 @@ class HomeTab extends StatelessWidget {
       SalesSeries('Sun', 320),
     ];
 
+    final List<SalesSeries> hourSales = List.generate(24, (i) {
+      return SalesSeries('${i}h', 100 + i * 5);
+    });
+
     final List<StoreSales> storeSales = List.generate(20, (i) {
       return StoreSales(
         store: 'VFS${i + 1}',
@@ -473,9 +517,9 @@ class HomeTab extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: SizedBox(
-                  height: 220,
-                  child: SalesBarChart(data: weekSales),
+                child: SalesTrendCard(
+                  weekData: weekSales,
+                  hourData: hourSales,
                 ),
               ),
             ),
