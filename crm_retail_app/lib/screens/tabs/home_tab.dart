@@ -31,9 +31,7 @@ class SummaryCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => MetricDetailScreen(metric: metric),
-          ),
+          MaterialPageRoute(builder: (_) => MetricDetailScreen(metric: metric)),
         );
       },
       borderRadius: BorderRadius.circular(14),
@@ -167,10 +165,7 @@ class SalesTrendCard extends StatelessWidget {
         children: [
           TabBar(
             labelColor: Theme.of(context).primaryColor,
-            tabs: const [
-              Tab(text: 'Week'),
-              Tab(text: 'Hour'),
-            ],
+            tabs: const [Tab(text: 'Week'), Tab(text: 'Hour')],
           ),
           SizedBox(
             height: 220,
@@ -209,12 +204,9 @@ class RecentCustomerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: CircleAvatar(
-        child: Text(customer.name.substring(0, 1)),
-      ),
+      leading: CircleAvatar(child: Text(customer.name.substring(0, 1))),
       title: Text(customer.name),
-      subtitle:
-          Text('Spent €${customer.totalSpent.toStringAsFixed(2)}'),
+      subtitle: Text('Spent €${customer.totalSpent.toStringAsFixed(2)}'),
       trailing: Text(customer.lastPurchase),
     );
   }
@@ -252,9 +244,7 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
   void _showStoreDetails(StoreSales sales) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => StoreDetailScreen(sales: sales),
-      ),
+      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: sales)),
     );
   }
 
@@ -320,64 +310,105 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
           ],
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingTextStyle: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            columns: const [
-              DataColumn(label: Text('Store')),
-              DataColumn(label: Text('Last Year')),
-              DataColumn(label: Text('This Year')),
-              DataColumn(label: Text('Change (%)')),
-            ],
-            rows:
-                filteredSortedData.map((s) {
-                  final pct = s.percentChange;
-                  final isPositive = pct > 0;
-                  final isNegative = pct < 0;
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: filteredSortedData.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final s = filteredSortedData[index];
+            final pct = s.percentChange;
+            final isPositive = pct > 0;
+            final isNegative = pct < 0;
 
-                  return DataRow(
-                    color: MaterialStateProperty.resolveWith<Color?>(
-                      (_) =>
-                          isNegative
-                              ? Colors.red.withOpacity(0.05)
-                              : isPositive
-                              ? Colors.green.withOpacity(0.05)
-                              : null,
-                    ),
-                    onSelectChanged: (_) => _showStoreDetails(s),
-                    cells: [
-                      DataCell(Text(s.store)),
-                      DataCell(Text('€${s.lastYear.toStringAsFixed(2)}')),
-                      DataCell(Text('€${s.thisYear.toStringAsFixed(2)}')),
-                      DataCell(
-                        Row(
-                          children: [
-                            Icon(
-                              isPositive
-                                  ? Icons.arrow_upward
-                                  : isNegative
-                                  ? Icons.arrow_downward
-                                  : Icons.remove,
-                              size: 14,
-                              color:
-                                  isPositive
-                                      ? Colors.green
-                                      : isNegative
-                                      ? Colors.red
-                                      : Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Text('${pct.toStringAsFixed(1)}%'),
-                          ],
-                        ),
+            final pctColor =
+                isPositive
+                    ? Colors.green
+                    : isNegative
+                    ? Colors.red
+                    : Colors.grey;
+
+            final bgColor =
+                isPositive
+                    ? Colors.green.withOpacity(0.06)
+                    : isNegative
+                    ? Colors.red.withOpacity(0.06)
+                    : Colors.grey.withOpacity(0.04);
+
+            return TweenAnimationBuilder<Color?>(
+              duration: const Duration(milliseconds: 500),
+              tween: ColorTween(begin: Colors.white, end: bgColor),
+              builder: (_, color, __) {
+                return Material(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: () => _showStoreDetails(s),
+                    borderRadius: BorderRadius.circular(12),
+                    splashColor: Theme.of(
+                      context,
+                    ).primaryColor.withOpacity(0.1),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
                       ),
-                    ],
-                  );
-                }).toList(),
-          ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.storefront,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  s.store,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '€${s.thisYear.toStringAsFixed(2)}',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                isPositive
+                                    ? Icons.arrow_upward
+                                    : isNegative
+                                    ? Icons.arrow_downward
+                                    : Icons.remove,
+                                size: 18,
+                                color: pctColor,
+                              ),
+                              const SizedBox(width: 4),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 300),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: pctColor,
+                                ),
+                                child: Text('${pct.toStringAsFixed(1)}%'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );
@@ -443,7 +474,7 @@ class HomeTab extends StatelessWidget {
       return SalesSeries('${hour}h', 100 + i * 5);
     });
 
-    final List<StoreSales> storeSales = List.generate(20, (i) {
+    final List<StoreSales> storeSales = List.generate(120, (i) {
       return StoreSales(
         store: 'VFS${i + 1}',
         lastYear: 10000 + i * 600,
@@ -522,10 +553,7 @@ class HomeTab extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: SalesTrendCard(
-                  weekData: weekSales,
-                  hourData: hourSales,
-                ),
+                child: SalesTrendCard(weekData: weekSales, hourData: hourSales),
               ),
             ),
             const SizedBox(height: 32),
@@ -562,14 +590,136 @@ class HomeTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
-                children: customers
-                    .map((c) => RecentCustomerTile(customer: c))
-                    .toList(),
+                children:
+                    customers
+                        .map((c) => RecentCustomerTile(customer: c))
+                        .toList(),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+// Replace StoreSalesTable with AnimatedStoreSalesTable
+// Place this at the end of your file or in a separate widget file if preferred
+
+class AnimatedStoreSalesTable extends StatelessWidget {
+  final List<StoreSales> salesData;
+
+  const AnimatedStoreSalesTable({super.key, required this.salesData});
+
+  void _showStoreDetails(BuildContext context, StoreSales sale) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: sale)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = List<StoreSales>.from(salesData)
+      ..sort((a, b) => b.percentChange.compareTo(a.percentChange));
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      itemCount: sorted.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final sale = sorted[index];
+        final pct = sale.percentChange;
+        final isPositive = pct > 0;
+        final isNegative = pct < 0;
+
+        final bgColor =
+            isPositive
+                ? Colors.green.withOpacity(0.06)
+                : isNegative
+                ? Colors.red.withOpacity(0.06)
+                : Colors.grey.withOpacity(0.03);
+
+        final pctColor =
+            isPositive
+                ? Colors.green
+                : isNegative
+                ? Colors.red
+                : Colors.grey;
+
+        return TweenAnimationBuilder<Color?>(
+          tween: ColorTween(begin: Colors.white, end: bgColor),
+          duration: const Duration(milliseconds: 600),
+          builder: (_, color, __) {
+            return Material(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () => _showStoreDetails(context, sale),
+                borderRadius: BorderRadius.circular(12),
+                splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.storefront,
+                        size: 28,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sale.store,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '€${sale.thisYear.toStringAsFixed(2)}',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            isPositive
+                                ? Icons.arrow_upward
+                                : isNegative
+                                ? Icons.arrow_downward
+                                : Icons.remove,
+                            size: 18,
+                            color: pctColor,
+                          ),
+                          const SizedBox(width: 4),
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 300),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: pctColor,
+                            ),
+                            child: Text('${pct.toStringAsFixed(1)}%'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
