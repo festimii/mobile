@@ -9,14 +9,13 @@ class MetricDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final details = _metricDetails[metric.title] ?? <String>[];
+    final subKpis = _shortKpis[metric.title] ?? [];
 
     return Scaffold(
       appBar: AppBar(title: Text(metric.title)),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -38,10 +37,45 @@ class MetricDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            ...details.map(
-              (d) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(d, style: theme.textTheme.bodyLarge),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.2,
+                children:
+                    subKpis.map((kpi) {
+                      return Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(kpi.icon, color: metric.color, size: 28),
+                              const SizedBox(height: 10),
+                              Text(
+                                kpi.title,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                kpi.value,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
             ),
           ],
@@ -49,43 +83,51 @@ class MetricDetailScreen extends StatelessWidget {
       ),
     );
   }
-
-  static const Map<String, List<String>> _metricDetails = {
-    'Total Revenue': [
-      'Revenue vs Last Week: % increase/decrease compared to last week',
-      'Top Contributing Store: store with the highest revenue',
-      'Revenue per Transaction: Total Revenue ÷ Number of Transactions',
-      'Revenue from Promotions: % of revenue from discounts/promotions',
-    ],
-    'Transactions': [
-      'Avg. Transactions per Hour: helps monitor peak times',
-      'Peak Transaction Time: hour with the most transactions',
-      'Online vs In-store Ratio: % split if applicable',
-      'Repeat Customers %: transactions from loyalty customers',
-    ],
-    'Avg. Basket Size': [
-      'Basket Size Trend: % change over the last 7 days',
-      'Top Add-On Product: most frequent secondary product',
-      '% Large Baskets (> €20): helps identify upsell success',
-      'Basket Size by Category: average per product category',
-    ],
-    'Top Product': [
-      'Units Sold Today: quantity sold of top product',
-      'Revenue Contribution: portion of total revenue',
-      'Attach Rate: % of transactions including the product',
-      'Stock Remaining: inventory status of top product',
-    ],
-    'Returns Today': [
-      'Return %: Returns ÷ Total Transactions × 100',
-      'Top Returned Item: most commonly returned product',
-      'Reason Breakdown: aggregated reasons e.g. damaged',
-      'Refund vs Exchange Ratio: customer behaviour on return',
-    ],
-    'Low Inventory': [
-      'Days Left (Forecasted): estimated days before stockout',
-      'Avg Daily Sales (Last 7d): per low-inventory item',
-      'Supplier Lead Time: average time to replenish stock',
-      'Restock Status: pending/ordered/delayed',
-    ],
-  };
 }
+
+class SubKpi {
+  final String title;
+  final String value;
+  final IconData icon;
+
+  SubKpi(this.title, this.value, this.icon);
+}
+
+Map<String, List<SubKpi>> _shortKpis = {
+  'Total Revenue': [
+    SubKpi('Vs Last Week', '+12%', Icons.trending_up),
+    SubKpi('Top Store', 'VFS3', Icons.store),
+    SubKpi('Rev / Tx', '€14.71', Icons.calculate),
+    SubKpi('Promos', '18%', Icons.local_offer),
+  ],
+  'Transactions': [
+    SubKpi('Per Hour', '102', Icons.access_time),
+    SubKpi('Peak Time', '15:00', Icons.schedule),
+    SubKpi('Online %', '28%', Icons.wifi),
+    SubKpi('Repeat', '36%', Icons.repeat),
+  ],
+  'Avg. Basket Size': [
+    SubKpi('Trend', '+5.2%', Icons.trending_up),
+    SubKpi('Add-On', 'Bread', Icons.add),
+    SubKpi('> €20', '23%', Icons.shopping_cart),
+    SubKpi('By Cat.', '€18.10', Icons.category),
+  ],
+  'Top Product': [
+    SubKpi('Sold Today', '221', Icons.check_circle),
+    SubKpi('Revenue %', '8.4%', Icons.pie_chart),
+    SubKpi('Attach Rate', '41%', Icons.link),
+    SubKpi('Stock Left', '52', Icons.inventory),
+  ],
+  'Returns Today': [
+    SubKpi('Return %', '1.4%', Icons.percent),
+    SubKpi('Top Item', 'Milk 1L', Icons.assignment_return),
+    SubKpi('Damage', '46%', Icons.report_problem),
+    SubKpi('Exchanges', '29%', Icons.swap_horiz),
+  ],
+  'Low Inventory': [
+    SubKpi('Days Left', '3.1d', Icons.calendar_today),
+    SubKpi('Daily Sales', '18', Icons.bar_chart),
+    SubKpi('Lead Time', '5d', Icons.access_time_filled),
+    SubKpi('Restock', 'Pending', Icons.timelapse),
+  ],
+};
