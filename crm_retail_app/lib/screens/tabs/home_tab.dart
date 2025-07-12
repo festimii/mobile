@@ -112,6 +112,10 @@ class SalesBarChart extends StatelessWidget {
               getTitlesWidget: (value, _) {
                 int index = value.toInt();
                 if (index >= 0 && index < data.length) {
+                  // On dense hour charts, only show every other label
+                  if (data.length > 12 && index.isOdd) {
+                    return const SizedBox.shrink();
+                  }
                   return Text(
                     data[index].day,
                     style: const TextStyle(fontSize: 10),
@@ -434,8 +438,9 @@ class HomeTab extends StatelessWidget {
       SalesSeries('Sun', 320),
     ];
 
-    final List<SalesSeries> hourSales = List.generate(24, (i) {
-      return SalesSeries('${i}h', 100 + i * 5);
+    final List<SalesSeries> hourSales = List.generate(17, (i) {
+      int hour = 8 + i; // display hours from 8 to 24
+      return SalesSeries('${hour}h', 100 + i * 5);
     });
 
     final List<StoreSales> storeSales = List.generate(20, (i) {
