@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+/// Model representing a quick metric shown at the top of the dashboard.
+
 class SummaryMetric {
   final String title;
   final String value;
@@ -128,6 +130,39 @@ class SalesBarChart extends StatelessWidget {
   }
 }
 
+/// Simple customer model used for the recent customers section.
+class RecentCustomer {
+  final String name;
+  final double totalSpent;
+  final String lastPurchase;
+
+  RecentCustomer({
+    required this.name,
+    required this.totalSpent,
+    required this.lastPurchase,
+  });
+}
+
+/// Displays basic information about a customer.
+class RecentCustomerTile extends StatelessWidget {
+  final RecentCustomer customer;
+
+  const RecentCustomerTile({super.key, required this.customer});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: CircleAvatar(
+        child: Text(customer.name.substring(0, 1)),
+      ),
+      title: Text(customer.name),
+      subtitle:
+          Text('Spent €${customer.totalSpent.toStringAsFixed(2)}'),
+      trailing: Text(customer.lastPurchase),
+    );
+  }
+}
+
 class StoreSales {
   final String store;
   final double lastYear;
@@ -156,6 +191,37 @@ class StoreSalesTable extends StatefulWidget {
 class _StoreSalesTableState extends State<StoreSalesTable> {
   bool sortAscending = false;
   StoreFilter filter = StoreFilter.all;
+
+  void _showStoreDetails(StoreSales sales) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              sales.store,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text('Last year: €${sales.lastYear.toStringAsFixed(2)}'),
+            Text('This year: €${sales.thisYear.toStringAsFixed(2)}'),
+            Text('Change: ${sales.percentChange.toStringAsFixed(1)}%'),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   List<StoreSales> get filteredSortedData {
     final filtered =
@@ -246,6 +312,7 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
                               ? Colors.green.withOpacity(0.05)
                               : null,
                     ),
+                    onSelectChanged: (_) => _showStoreDetails(s),
                     cells: [
                       DataCell(Text(s.store)),
                       DataCell(Text('€${s.lastYear.toStringAsFixed(2)}')),
@@ -344,12 +411,35 @@ class HomeTab extends StatelessWidget {
       );
     });
 
+    final List<RecentCustomer> customers = [
+      RecentCustomer(
+        name: 'Alice Johnson',
+        totalSpent: 250.50,
+        lastPurchase: '12 Sep',
+      ),
+      RecentCustomer(
+        name: 'Bob Smith',
+        totalSpent: 190.00,
+        lastPurchase: '10 Sep',
+      ),
+      RecentCustomer(
+        name: 'Caroline Lee',
+        totalSpent: 320.10,
+        lastPurchase: '09 Sep',
+      ),
+    ];
+
     final double cardWidth =
         MediaQuery.of(context).size.width > 600
             ? 260
             : MediaQuery.of(context).size.width / 2 - 22;
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        tooltip: 'New Sale',
+        child: const Icon(Icons.add),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -415,6 +505,26 @@ class HomeTab extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: StoreSalesTable(salesData: storeSales),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              "Recent Customers",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: customers
+                    .map((c) => RecentCustomerTile(customer: c))
+                    .toList(),
               ),
             ),
           ],
