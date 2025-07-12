@@ -52,28 +52,40 @@ class MetricDetailScreen extends StatelessWidget {
 
   static const Map<String, List<String>> _metricDetails = {
     'Total Revenue': [
-      'Revenue YTD: €98,400',
-      'Avg daily revenue: €1,200',
+      'Revenue vs Last Week: % increase/decrease compared to last week',
+      'Top Contributing Store: store with the highest revenue',
+      'Revenue per Transaction: Total Revenue ÷ Number of Transactions',
+      'Revenue from Promotions: % of revenue from discounts/promotions',
     ],
     'Transactions': [
-      'Avg daily transactions: 125',
-      'Peak hour: 12pm-1pm',
+      'Avg. Transactions per Hour: helps monitor peak times',
+      'Peak Transaction Time: hour with the most transactions',
+      'Online vs In-store Ratio: % split if applicable',
+      'Repeat Customers %: transactions from loyalty customers',
     ],
     'Avg. Basket Size': [
-      'Yesterday: €15.03',
-      'Last week avg: €14.54',
+      'Basket Size Trend: % change over the last 7 days',
+      'Top Add-On Product: most frequent secondary product',
+      '% Large Baskets (> €20): helps identify upsell success',
+      'Basket Size by Category: average per product category',
     ],
     'Top Product': [
-      'Units sold today: 120',
-      'Weekly sales: 640',
+      'Units Sold Today: quantity sold of top product',
+      'Revenue Contribution: portion of total revenue',
+      'Attach Rate: % of transactions including the product',
+      'Stock Remaining: inventory status of top product',
     ],
     'Returns Today': [
-      'Returns this week: 47',
-      'Most returned item: Soft Drink 500ml',
+      'Return %: Returns ÷ Total Transactions × 100',
+      'Top Returned Item: most commonly returned product',
+      'Reason Breakdown: aggregated reasons e.g. damaged',
+      'Refund vs Exchange Ratio: customer behaviour on return',
     ],
     'Low Inventory': [
-      'Orders pending: 3',
-      'Restock ETA: 2 days',
+      'Days Left (Forecasted): estimated days before stockout',
+      'Avg Daily Sales (Last 7d): per low-inventory item',
+      'Supplier Lead Time: average time to replenish stock',
+      'Restock Status: pending/ordered/delayed',
     ],
   };
 }
