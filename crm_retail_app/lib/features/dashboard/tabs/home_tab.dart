@@ -193,6 +193,13 @@ class StoreSalesTable extends StatefulWidget {
 class _StoreSalesTableState extends State<StoreSalesTable> {
   bool sortAscending = false;
   StoreFilter filter = StoreFilter.all;
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   void _showStoreDetails(StoreSales sales) {
     Navigator.push(
@@ -202,17 +209,22 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
   }
 
   List<StoreSales> get filteredSortedData {
-    final filtered =
-        widget.salesData.where((s) {
-          switch (filter) {
-            case StoreFilter.positive:
-              return s.percentChange > 0;
-            case StoreFilter.negative:
-              return s.percentChange < 0;
-            default:
-              return true;
-          }
-        }).toList();
+    final filtered = widget.salesData.where((s) {
+      switch (filter) {
+        case StoreFilter.positive:
+          return s.percentChange > 0;
+        case StoreFilter.negative:
+          return s.percentChange < 0;
+        default:
+          return true;
+      }
+    }).toList();
+
+    if (_searchCtrl.text.isNotEmpty) {
+      final query = _searchCtrl.text.toLowerCase();
+      filtered.retainWhere(
+          (s) => s.store.toLowerCase().contains(query));
+    }
 
     filtered.sort(
       (a, b) =>
@@ -244,28 +256,37 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
                   value: StoreFilter.positive,
                   child: Text("Positive"),
                 ),
-                DropdownMenuItem(
-                  value: StoreFilter.negative,
-                  child: Text("Negative"),
-                ),
-              ],
+              DropdownMenuItem(
+                value: StoreFilter.negative,
+                child: Text("Negative"),
+              ),
+            ],
             ),
-            const SizedBox(width: 24),
-            Row(
-              children: [
-                const Text("Ascending"),
-                Switch(
-                  value: sortAscending,
-                  onChanged: (val) => setState(() => sortAscending = val),
-                ),
-              ],
+        const SizedBox(width: 24),
+        Row(
+          children: [
+            const Text("Ascending"),
+            Switch(
+              value: sortAscending,
+              onChanged: (val) => setState(() => sortAscending = val),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+      ],
+    ),
+    const SizedBox(height: 12),
+    TextField(
+      controller: _searchCtrl,
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.search),
+        hintText: 'Search stores',
+      ),
+      onChanged: (_) => setState(() {}),
+    ),
+    const SizedBox(height: 12),
+    ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
           itemCount: filteredSortedData.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
