@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
-import 'theme/misty_dark_theme.dart'; // Save theme above to this file
+import 'features/auth/login_screen.dart';
+import 'features/theme/misty_dark_theme.dart';
 
 void main() {
   runApp(const MyApp());
