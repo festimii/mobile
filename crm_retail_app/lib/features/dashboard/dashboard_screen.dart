@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:crm_retail_app/screens/tabs/home_tab.dart';
-import 'package:crm_retail_app/screens/tabs/sales_tab.dart';
-import 'package:crm_retail_app/screens/tabs/inventory_tab.dart';
-import 'package:crm_retail_app/screens/tabs/settings_tab.dart';
+import 'package:crm_retail_app/features/dashboard/tabs/home_tab.dart';
+import 'package:crm_retail_app/features/dashboard/tabs/sales_tab.dart';
+import 'package:crm_retail_app/features/dashboard/tabs/inventory_tab.dart';
+import 'package:crm_retail_app/features/dashboard/tabs/settings_tab.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
