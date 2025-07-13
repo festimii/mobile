@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../theme/theme_notifier.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -18,10 +20,15 @@ class SettingsTab extends StatelessWidget {
             title: const Text("Profile"),
             onTap: () {}, // Navigate to profile settings
           ),
-          ListTile(
-            leading: const Icon(Icons.palette),
-            title: const Text("Theme"),
-            onTap: () {}, // Toggle theme if implemented
+          Consumer<ThemeNotifier>(
+            builder: (context, themeNotifier, _) {
+              return SwitchListTile(
+                secondary: const Icon(Icons.palette),
+                title: const Text('Dark Mode'),
+                value: themeNotifier.isDarkMode,
+                onChanged: (_) => themeNotifier.toggle(),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.logout),
