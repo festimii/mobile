@@ -21,7 +21,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     SettingsTab(),
   ];
 
-  final List<String> _titles = ['Dashboard', 'Sales', 'Inventory', 'Settings'];
+  final List<String> _titles = ['Stores', 'B2B/C', 'Stock', 'Settings'];
 
   @override
   Widget build(BuildContext context) {
@@ -35,15 +35,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         unselectedItemColor: Colors.grey,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Stores'),
           BottomNavigationBarItem(
             icon: Icon(Icons.point_of_sale),
-            label: 'Sales',
+            label: 'B2B/C',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory),
-            label: 'Inventory',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Stock'),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
