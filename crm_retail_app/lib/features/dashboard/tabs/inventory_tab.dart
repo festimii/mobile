@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_tab.dart';
+import '../../../models/dashboard_models.dart';
 
 class InventoryTab extends StatelessWidget {
   const InventoryTab({super.key});

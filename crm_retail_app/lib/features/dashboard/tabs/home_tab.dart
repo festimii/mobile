@@ -2,22 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../metric_detail_screen.dart';
 import '../store_detail_screen.dart';
-
-/// Model representing a quick metric shown at the top of the dashboard.
-
-class SummaryMetric {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  SummaryMetric({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-}
+import '../../../models/dashboard_models.dart';
 
 class SummaryCard extends StatelessWidget {
   final SummaryMetric metric;
@@ -81,12 +66,7 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
-class SalesSeries {
-  final String day;
-  final double sales;
 
-  SalesSeries(this.day, this.sales);
-}
 
 class SalesBarChart extends StatelessWidget {
   final List<SalesSeries> data;
@@ -182,19 +162,6 @@ class SalesTrendCard extends StatelessWidget {
   }
 }
 
-/// Simple customer model used for the recent customers section.
-class RecentCustomer {
-  final String name;
-  final double totalSpent;
-  final String lastPurchase;
-
-  RecentCustomer({
-    required this.name,
-    required this.totalSpent,
-    required this.lastPurchase,
-  });
-}
-
 /// Displays basic information about a customer.
 class RecentCustomerTile extends StatelessWidget {
   final RecentCustomer customer;
@@ -210,20 +177,6 @@ class RecentCustomerTile extends StatelessWidget {
       trailing: Text(customer.lastPurchase),
     );
   }
-}
-
-class StoreSales {
-  final String store;
-  final double lastYear;
-  final double thisYear;
-
-  StoreSales({
-    required this.store,
-    required this.lastYear,
-    required this.thisYear,
-  });
-
-  double get percentChange => ((thisYear - lastYear) / lastYear) * 100;
 }
 
 enum StoreFilter { all, positive, negative }
