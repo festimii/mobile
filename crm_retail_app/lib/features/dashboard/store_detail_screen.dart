@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'tabs/home_tab.dart';
+import '../../models/dashboard_models.dart';
 
 class StoreDetailScreen extends StatelessWidget {
   final StoreSales sales;

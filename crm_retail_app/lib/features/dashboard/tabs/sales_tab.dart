@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_tab.dart';
+import '../../../models/dashboard_models.dart';
 
 /// Sales tab showing KPIs for both B2C and B2B online sales.
 class SalesTab extends StatelessWidget {

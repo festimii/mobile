@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'tabs/home_tab.dart';
+import '../../models/dashboard_models.dart';
 
 class MetricDetailScreen extends StatelessWidget {
   final SummaryMetric metric;
