@@ -1,0 +1,48 @@
+[from-internal-custom]
+
+; ─── First-level IVR ───────────────────────────────────────────────
+exten => 556,1,Answer()
+ same  => n,Set(TIMEOUT(digit)=5)
+ same  => n,Set(TIMEOUT(response)=10)
+ same  => n,Background(custom/greetingAL)
+ same  => n,WaitExten(5)
+ same  => n,Hangup()
+
+; ─── Busy Loop Logic ──────────────────────────────────────────────
+exten => busy,1,NoOp(${EXTENSION_TO_DIAL} busy – retry loop)
+ same  => n,Set(LOOPCOUNT=$[${IF($[${ISNULL(${LOOPCOUNT})}]?0:${LOOPCOUNT})+1])
+ same  => n,Playback(custom/linebusy)
+ same  => n,ExecIf($[${LOOPCOUNT} > 3]?Hangup())
+ same  => n,MusicOnHold(customhold)
+ same  => n,ChanIsAvail(PJSIP/${EXTENSION_TO_DIAL})
+ same  => n,GotoIf($[${AVAILSTATUS} = 1]?busy,1)
+ same  => n,Playback(custom/lawd)
+ same  => n,Dial(PJSIP/${EXTENSION_TO_DIAL},20)
+ same  => n,Hangup()
+
+exten => _0.,1,NoOp(Outbound call: ${EXTEN})
+ same  => n,Dial(PJSIP/${EXTEN}@IPKO_NUMRI_+38138746736,30)
+ same  => n,Hangup()
+
+exten => _00383.,1,NoOp(Outbound call international format: ${EXTEN})
+ same  => n,Dial(PJSIP/your-trunk-name/${EXTEN},30)
+ same  => n,Hangup()
+
+; ─── Internal Calls Routed via AGI ─────────────────────────────────
+exten => _X.,1,NoOp(Internal input: ${EXTEN})
+ same  => n,AGI(routebyFestim.py,${EXTEN})
+ same  => n,NoOp(Target: ${EXTENSION_TO_DIAL})
+ same  => n,ExecIf($["${EXTENSION_TO_DIAL}" = "invalid"]?Hangup())
+
+ ; --- Check if target is busy ---
+ same  => n,ChanIsAvail(PJSIP/${EXTENSION_TO_DIAL})
+ same  => n,GotoIf($[${AVAILSTATUS} = 1]?busy,1)
+
+ ; --- Free: Proceed with call ---
+ same  => n,Playback(custom/lawd)
+ same  => n,Dial(PJSIP/${EXTENSION_TO_DIAL},20)
+ same  => n,Hangup()
+
+; ─── Invalid & Timeout ─────────────────────────────────────────────
+exten => i,1,Hangup()
+exten => t,1,Hangup()
