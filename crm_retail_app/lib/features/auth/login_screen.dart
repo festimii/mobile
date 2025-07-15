@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,19 +13,38 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _needsOtp = false;
+  final ApiService _api = ApiService();
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      final email = _emailCtrl.text.trim();
-      final password = _passwordCtrl.text.trim();
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      debugPrint('Logging in: $email / $password');
+    final username = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text.trim();
+    final otp = _needsOtp ? _otpCtrl.text.trim() : null;
 
-      // Simulated auth logic — navigate to dashboard
+    final res = await _api.login(username, password, otp: otp);
+
+    if (res.statusCode == 200) {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } else if (res.statusCode == 403 && res.body.contains('OTP required')) {
+      setState(() => _needsOtp = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter one-time code')),
+      );
+    } else if (res.statusCode == 403 && res.body.contains('Invalid OTP')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid code')), 
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid credentials')),
       );
     }
   }
@@ -33,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _otpCtrl.dispose();
     super.dispose();
   }
 
@@ -100,6 +121,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
+
+                if (_needsOtp) ...[
+                  // One-time code field
+                  TextFormField(
+                    controller: _otpCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'One-time code',
+                      prefixIcon: Icon(Icons.shield),
+                    ),
+                    validator: (value) {
+                      if (_needsOtp && (value == null || value.isEmpty)) {
+                        return 'Enter code';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Login button
                 SizedBox(
