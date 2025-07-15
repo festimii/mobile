@@ -5,10 +5,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.vivacrm.crm.user.User;
 import com.vivacrm.crm.user.UserRepository;
@@ -33,8 +30,14 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
         String username = body.get("username");
+        String email = body.get("email");
         String password = body.get("password");
-        User user = userService.register(username, password);
+
+        if (username == null || email == null || password == null) {
+            return ResponseEntity.badRequest().body("Missing required fields");
+        }
+
+        User user = userService.register(username, email, password);
         return ResponseEntity.ok(Map.of("totpSecret", user.getTotpSecret()));
     }
 
@@ -43,18 +46,39 @@ public class AuthController {
         String username = body.get("username");
         String password = body.get("password");
         String otp = body.get("otp");
+
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password));
+
             User user = userRepository.findByUsername(username).orElseThrow();
+
             if (user.isTotpEnabled()) {
-                if (otp == null || !userService.verifyTotp(user, otp)) {
+                if (otp == null) {
+                    System.out.printf("OTP missing for user: %s%n", username);
+                    return ResponseEntity.status(403).body("OTP required");
+                }
+
+                boolean isValid = userService.verifyTotp(user, otp);
+
+                // 🔍 Log TOTP debug info
+                System.out.printf("User: %s%n", username);
+                System.out.printf("Stored TOTP Secret: %s%n", user.getTotpSecret());
+                System.out.printf("Client OTP: %s%n", otp);
+
+                // OPTIONAL: print the expected code (only for debug; remove in production)
+                String expectedOtp = userService.generateCurrentTotpCode(user.getTotpSecret());
+                System.out.printf("Expected OTP: %s%n", expectedOtp);
+
+                if (!isValid) {
                     return ResponseEntity.status(403).body("Invalid OTP");
                 }
             }
+
             return ResponseEntity.ok("Authenticated");
         } catch (AuthenticationException e) {
+            System.out.printf("Authentication failed for user: %s%n", username);
             return ResponseEntity.status(401).build();
         }
-    }
-}
+    }}
+
