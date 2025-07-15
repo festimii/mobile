@@ -1,6 +1,6 @@
 /// Defines endpoints used by the application.
 class ApiRoutes {
-  static const baseUrl = 'https://api.example.com';
+  static const baseUrl = 'http://192.168.201.33:8080';
 
   static const login = '/auth/login';
   static const metrics = '/dashboard/metrics';

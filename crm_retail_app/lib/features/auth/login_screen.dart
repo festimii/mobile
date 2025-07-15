@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../services/api_service.dart';
@@ -18,6 +19,24 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _needsOtp = false;
   final ApiService _api = ApiService();
 
+  // 🔁 TOTP countdown state
+  Timer? _otpTimer;
+  int _secondsLeft = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _startOtpCountdown();
+  }
+
+  void _startOtpCountdown() {
+    _otpTimer?.cancel();
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final remaining = 30 - (DateTime.now().second % 30);
+      setState(() => _secondsLeft = remaining);
+    });
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -25,7 +44,14 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordCtrl.text.trim();
     final otp = _needsOtp ? _otpCtrl.text.trim() : null;
 
-    final res = await _api.login(username, password, otp: otp);
+    final res = await _api.login(username, password, otp);
+
+    if (res == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Network error')));
+      return;
+    }
 
     if (res.statusCode == 200) {
       if (!mounted) return;
@@ -35,22 +61,23 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else if (res.statusCode == 403 && res.body.contains('OTP required')) {
       setState(() => _needsOtp = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter one-time code')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter one-time code')));
     } else if (res.statusCode == 403 && res.body.contains('Invalid OTP')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid code')), 
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid code')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid credentials')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid credentials')));
     }
   }
 
   @override
   void dispose() {
+    _otpTimer?.cancel();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     _otpCtrl.dispose();
@@ -84,13 +111,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: const Icon(Icons.email),
+                  decoration: const InputDecoration(
+                    labelText: 'Username or Email',
+                    prefixIcon: Icon(Icons.email),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Enter email';
-                    if (!value.contains('@')) return 'Enter valid email';
+                    if (value == null || value.isEmpty) {
+                      return 'Enter username or email';
+                    }
                     return null;
                   },
                 ),
@@ -109,21 +137,24 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? Icons.visibility
                             : Icons.visibility_off,
                       ),
-                      onPressed:
-                          () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Enter password';
+                    if (value == null || value.isEmpty) {
+                      return 'Enter password';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
                 if (_needsOtp) ...[
-                  // One-time code field
+                  // OTP field
                   TextFormField(
                     controller: _otpCtrl,
                     keyboardType: TextInputType.number,
@@ -138,6 +169,30 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 8),
+
+                  // Animated countdown
+                  TweenAnimationBuilder<int>(
+                    tween: IntTween(begin: 30, end: _secondsLeft),
+                    duration: const Duration(milliseconds: 300),
+                    builder: (_, value, __) {
+                      final color =
+                          value > 20
+                              ? Colors.green
+                              : value > 10
+                              ? Colors.orange
+                              : Colors.red;
+
+                      return Text(
+                        'Code refreshes in $value s',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
+                  ),
+
                   const SizedBox(height: 24),
                 ],
 

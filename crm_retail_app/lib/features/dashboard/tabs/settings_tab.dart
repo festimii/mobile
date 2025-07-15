@@ -33,9 +33,29 @@ class SettingsTab extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text("Logout"),
-            onTap: () {
-              // Confirm and return to login
-              Navigator.of(context).pushReplacementNamed('/login');
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text('Logout'),
+                      content: const Text('Are you sure you want to log out?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    ),
+              );
+
+              if (confirm == true) {
+                Navigator.of(context).pushReplacementNamed('/login');
+              }
             },
           ),
         ],

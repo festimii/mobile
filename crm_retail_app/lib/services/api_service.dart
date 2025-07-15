@@ -17,33 +17,46 @@ class ApiService {
   /// callers can inspect the status code and body. A 200 response indicates
   /// successful authentication. A 403 response with body `OTP required`
   /// means a one-time code is needed.
-  Future<http.Response> login(
+  Future<http.Response?> login(
     String username,
-    String password, {
+    String password,
     String? otp,
-  }) async {
-    final res = await http.post(
-      _uri(ApiRoutes.login),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': username,
-        'password': password,
-        if (otp != null) 'otp': otp,
-      }),
-    );
-    return res;
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+          if (otp != null) 'otp': otp, // ✅ only include if available
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return response;
+      } else {
+        print('Login failed: ${response.statusCode} ${response.body}');
+        return response;
+      }
+    } catch (e, stack) {
+      print('HTTP error during login: $e\n$stack');
+      return null;
+    }
   }
 
   Future<List<SummaryMetric>> fetchMetrics() async {
     final res = await http.get(_uri(ApiRoutes.metrics));
     final data = jsonDecode(res.body) as List<dynamic>;
     return data
-        .map((e) => SummaryMetric(
-              title: e['title'],
-              value: e['value'],
-              icon: Icons.insert_chart, // placeholder
-              color: Colors.teal,
-            ))
+        .map(
+          (e) => SummaryMetric(
+            title: e['title'],
+            value: e['value'],
+            icon: Icons.insert_chart, // placeholder
+            color: Colors.teal,
+          ),
+        )
         .toList();
   }
 
@@ -51,11 +64,13 @@ class ApiService {
     final res = await http.get(_uri(ApiRoutes.storeSales));
     final data = jsonDecode(res.body) as List<dynamic>;
     return data
-        .map((e) => StoreSales(
-              store: e['store'],
-              lastYear: (e['lastYear'] as num).toDouble(),
-              thisYear: (e['thisYear'] as num).toDouble(),
-            ))
+        .map(
+          (e) => StoreSales(
+            store: e['store'],
+            lastYear: (e['lastYear'] as num).toDouble(),
+            thisYear: (e['thisYear'] as num).toDouble(),
+          ),
+        )
         .toList();
   }
 }

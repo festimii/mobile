@@ -25,8 +25,15 @@ class MyApp extends StatelessWidget {
           theme: ThemeData.light(),
           darkTheme: mistyDarkTheme,
           themeMode: theme.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          home: const LoginScreen(),
           debugShowCheckedModeBanner: false,
+
+          // 🔽 Add this
+          initialRoute: '/login',
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            // Add more routes here as needed, e.g.
+            // '/dashboard': (context) => const DashboardScreen(),
+          },
         );
       },
     );
