@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/theme_notifier.dart';
+import '../../profile/profile_screen.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -18,7 +19,11 @@ class SettingsTab extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text("Profile"),
-            onTap: () {}, // Navigate to profile settings
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
           ),
           Consumer<ThemeNotifier>(
             builder: (context, themeNotifier, _) {

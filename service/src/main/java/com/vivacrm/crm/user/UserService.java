@@ -29,8 +29,9 @@ public class UserService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setTotpSecret(TotpUtil.generateSecret());
-        user.setTotpEnabled(true);
+        // OTP is disabled by default. Users can enable it later via profile
+        user.setTotpSecret(null);
+        user.setTotpEnabled(false);
         return userRepository.save(user);
     }
 
@@ -47,6 +48,22 @@ public class UserService {
 
     public String generateCurrentTotpCode(String base32Secret) {
         return TotpUtil.generateCurrentCode(base32Secret);
+    }
+
+    /** Enable TOTP for the given user and return the generated secret. */
+    public String enableTotp(User user) {
+        String secret = TotpUtil.generateSecret();
+        user.setTotpSecret(secret);
+        user.setTotpEnabled(true);
+        userRepository.save(user);
+        return secret;
+    }
+
+    /** Disable TOTP for the given user. */
+    public void disableTotp(User user) {
+        user.setTotpEnabled(false);
+        user.setTotpSecret(null);
+        userRepository.save(user);
     }
 }
 
