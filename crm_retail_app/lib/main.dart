@@ -16,35 +16,37 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
-        ChangeNotifierProvider.value(
-          value: userProvider,
-        ), // ✅ Inject initialized instance
+        ChangeNotifierProvider.value(value: userProvider),
       ],
-      child: const MyApp(),
+      child: MyApp(userProvider: userProvider), // ✅ FIXED HERE
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final UserProvider userProvider;
+  const MyApp({super.key, required this.userProvider});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeNotifier>(
-      builder: (context, theme, _) {
-        return MaterialApp(
-          title: 'Retail CRM',
-          theme: ThemeData.light(),
-          darkTheme: mistyDarkTheme,
-          themeMode: theme.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          debugShowCheckedModeBanner: false,
-          initialRoute: '/login',
-          routes: {
-            '/login': (context) => const LoginScreen(),
-            // '/dashboard': (context) => const DashboardScreen(),
-          },
-        );
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+        ChangeNotifierProvider.value(value: userProvider),
+      ],
+      child: Consumer<ThemeNotifier>(
+        builder: (context, theme, _) {
+          return MaterialApp(
+            title: 'Retail CRM',
+            theme: ThemeData.light(),
+            darkTheme: mistyDarkTheme,
+            themeMode: theme.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            debugShowCheckedModeBanner: false,
+            initialRoute: '/login',
+            routes: {'/login': (context) => const LoginScreen()},
+          );
+        },
+      ),
     );
   }
 }

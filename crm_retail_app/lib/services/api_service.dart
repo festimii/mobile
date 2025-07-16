@@ -25,26 +25,27 @@ class ApiService {
     bool rememberDevice = false,
   }) async {
     try {
+      final payload = {
+        'username': username,
+        'password': password,
+        if (otp != null) 'otp': otp,
+        if (deviceToken != null && deviceToken.isNotEmpty)
+          'deviceToken': deviceToken,
+        if (rememberDevice) 'rememberDevice': rememberDevice,
+      };
+
+      print('📤 Sending login payload: ${jsonEncode(payload)}');
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-          if (otp != null) 'otp': otp, // ✅ only include if available
-          if (deviceToken != null) 'deviceToken': deviceToken,
-          if (rememberDevice) 'rememberDevice': rememberDevice,
-        }),
+        body: jsonEncode(payload),
       );
 
-      if (response.statusCode == 200) {
-        return response;
-      } else {
-        print('Login failed: ${response.statusCode} ${response.body}');
-        return response;
-      }
+      print('🔄 Login response [${response.statusCode}]: ${response.body}');
+      return response;
     } catch (e, stack) {
-      print('HTTP error during login: $e\n$stack');
+      print('❌ HTTP error during login: $e\n$stack');
       return null;
     }
   }

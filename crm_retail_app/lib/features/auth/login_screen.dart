@@ -18,12 +18,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _otpCtrl = TextEditingController();
+
   bool _obscurePassword = true;
   bool _needsOtp = false;
   bool _rememberDevice = false;
-  final ApiService _api = ApiService();
 
-  // 🔁 TOTP countdown state
+  final ApiService _api = ApiService();
   Timer? _otpTimer;
   int _secondsLeft = 30;
 
@@ -47,30 +47,49 @@ class _LoginScreenState extends State<LoginScreen> {
     final username = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
     final otp = _needsOtp ? _otpCtrl.text.trim() : null;
-    final deviceToken = context.read<UserProvider>().deviceToken;
+
+    final userProvider = context.read<UserProvider>();
+    final deviceToken = userProvider.deviceToken;
+
+    final loginPayload = {
+      'username': username,
+      'password': '*' * password.length,
+      'otp': otp,
+      'deviceToken': deviceToken.isNotEmpty ? deviceToken : null,
+      'rememberDevice': otp != null && _rememberDevice,
+    };
+
+    debugPrint('🔐 Login Request:\n${jsonEncode(loginPayload)}');
 
     final res = await _api.login(
       username,
       password,
       otp,
       deviceToken: deviceToken.isNotEmpty ? deviceToken : null,
-      rememberDevice: _rememberDevice,
+      rememberDevice: otp != null && _rememberDevice,
     );
 
     if (res == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Network error')));
+      _showSnack('Network error');
       return;
     }
 
-    if (res.statusCode == 200) {
-      final data = res.body.isNotEmpty ? jsonDecode(res.body) as Map<String, dynamic> : <String, dynamic>{};
-      final newToken = data['deviceToken'] as String?;
+    debugPrint('🔄 Login Response [${res.statusCode}]: ${res.body}');
 
-      await context.read<UserProvider>().setUsername(username);
-      if (newToken != null) {
-        await context.read<UserProvider>().setDeviceToken(newToken);
+    if (res.statusCode == 200) {
+      final data =
+          res.body.isNotEmpty
+              ? jsonDecode(res.body) as Map<String, dynamic>
+              : <String, dynamic>{};
+
+      await userProvider.setUsername(username);
+
+      final newToken = data['deviceToken'] as String?;
+      if (newToken != null && newToken.isNotEmpty) {
+        debugPrint('✅ New deviceToken received: $newToken');
+        await userProvider.setDeviceToken(newToken);
+      } else {
+        debugPrint('ℹ️ No new deviceToken returned.');
       }
 
       if (!mounted) return;
@@ -78,20 +97,28 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(builder: (_) => const DashboardScreen()),
       );
-    } else if (res.statusCode == 403 && res.body.contains('OTP required')) {
-      setState(() => _needsOtp = true);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Enter one-time code')));
-    } else if (res.statusCode == 403 && res.body.contains('Invalid OTP')) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid code')));
+    } else if (res.statusCode == 403) {
+      if (res.body.contains('OTP required')) {
+        debugPrint('🔐 OTP required response received.');
+        setState(() => _needsOtp = true);
+        _showSnack('Enter one-time code');
+      } else if (res.body.contains('Invalid OTP')) {
+        debugPrint('❌ Invalid OTP response received.');
+        _showSnack('Invalid code');
+      } else {
+        debugPrint('❌ 403 but unknown body: ${res.body}');
+        _showSnack('Invalid credentials');
+      }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid credentials')));
+      debugPrint('❌ Login failed with status: ${res.statusCode}');
+      _showSnack('Invalid credentials');
     }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -126,7 +153,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Email field
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
@@ -134,16 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'Username or Email',
                     prefixIcon: Icon(Icons.email),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Enter username or email';
-                    }
-                    return null;
-                  },
+                  validator:
+                      (value) =>
+                          value == null || value.isEmpty
+                              ? 'Enter username or email'
+                              : null,
                 ),
                 const SizedBox(height: 16),
 
-                // Password field
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
@@ -156,24 +180,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             ? Icons.visibility
                             : Icons.visibility_off,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      onPressed:
+                          () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Enter password';
-                    }
-                    return null;
-                  },
+                  validator:
+                      (value) =>
+                          value == null || value.isEmpty
+                              ? 'Enter password'
+                              : null,
                 ),
                 const SizedBox(height: 24),
 
                 if (_needsOtp) ...[
-                  // OTP field
                   TextFormField(
                     controller: _otpCtrl,
                     keyboardType: TextInputType.number,
@@ -181,16 +202,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'One-time code',
                       prefixIcon: Icon(Icons.shield),
                     ),
-                    validator: (value) {
-                      if (_needsOtp && (value == null || value.isEmpty)) {
-                        return 'Enter code';
-                      }
-                      return null;
-                    },
+                    validator:
+                        (value) =>
+                            _needsOtp && (value == null || value.isEmpty)
+                                ? 'Enter code'
+                                : null,
                   ),
                   const SizedBox(height: 8),
-
-                  // Animated countdown
                   TweenAnimationBuilder<int>(
                     tween: IntTween(begin: 30, end: _secondsLeft),
                     duration: const Duration(milliseconds: 300),
@@ -201,7 +219,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               : value > 10
                               ? Colors.orange
                               : Colors.red;
-
                       return Text(
                         'Code refreshes in $value s',
                         style: TextStyle(
@@ -211,18 +228,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     },
                   ),
-
                   CheckboxListTile(
                     title: const Text('Trust this device'),
                     value: _rememberDevice,
-                    onChanged: (v) => setState(() => _rememberDevice = v ?? false),
+                    onChanged:
+                        (v) => setState(() => _rememberDevice = v ?? false),
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
-
                   const SizedBox(height: 24),
                 ],
 
-                // Login button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

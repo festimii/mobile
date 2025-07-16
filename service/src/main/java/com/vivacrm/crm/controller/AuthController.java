@@ -51,14 +51,26 @@ public class AuthController {
     public ResponseEntity<?> login(
             @RequestBody Map<String, String> body,
             @CookieValue(value = "DEVICE_TOKEN", required = false) String deviceTokenCookie) {
+
         String username = body.get("username");
         String password = body.get("password");
         String otp = body.get("otp");
         String deviceToken = body.get("deviceToken");
+
         if (deviceToken == null && deviceTokenCookie != null) {
             deviceToken = deviceTokenCookie;
         }
         boolean rememberDevice = Boolean.parseBoolean(body.getOrDefault("rememberDevice", "false"));
+
+        // 🔍 Log inputs
+        System.out.println("🔐 Login attempt:");
+        System.out.println("  Username: " + username);
+        System.out.println("  Password: " + (password != null ? "*".repeat(password.length()) : null));
+        System.out.println("  OTP: " + otp);
+        System.out.println("  Body deviceToken: " + body.get("deviceToken"));
+        System.out.println("  Cookie deviceToken: " + deviceTokenCookie);
+        System.out.println("  Effective deviceToken used: " + deviceToken);
+        System.out.println("  Remember device: " + rememberDevice);
 
         try {
             Authentication auth = authenticationManager.authenticate(
@@ -66,15 +78,19 @@ public class AuthController {
 
             User user = userRepository.findByUsername(username).orElseThrow();
 
-            // ✅ Check TOTP if enabled
             if (user.isTotpEnabled()) {
-                // ✅ Check existing valid device token
+                System.out.println("🔐 TOTP is enabled for user.");
+
+                // ✅ If client sent a deviceToken and it's valid, skip OTP
                 if (deviceToken != null && deviceTokenService.isValid(user, deviceToken)) {
+                    System.out.println("✅ Valid device token. Skipping OTP.");
+
                     ResponseCookie cookie = ResponseCookie.from("DEVICE_TOKEN", deviceToken)
                             .httpOnly(true)
                             .path("/")
                             .maxAge(Duration.ofDays(30))
                             .build();
+
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
                             .body(Map.of(
@@ -83,23 +99,31 @@ public class AuthController {
                             ));
                 }
 
-                // ✅ Enforce OTP if deviceToken is not valid
+                // ❌ OTP is required if no valid deviceToken
                 if (otp == null) {
+                    System.out.println("❌ OTP required but not provided.");
                     return ResponseEntity.status(403).body("OTP required");
                 }
 
+                // ✅ OTP was provided, verify it
                 boolean isValid = userService.verifyTotp(user, otp);
+                System.out.println("🔍 OTP verification result: " + isValid);
+
                 if (!isValid) {
                     return ResponseEntity.status(403).body("Invalid OTP");
                 }
 
+                // ✅ OTP valid — generate deviceToken if rememberDevice is true
                 if (rememberDevice) {
                     String newToken = deviceTokenService.createToken(user);
+                    System.out.println("🔑 Generated new device token: " + newToken);
+
                     ResponseCookie cookie = ResponseCookie.from("DEVICE_TOKEN", newToken)
                             .httpOnly(true)
                             .path("/")
                             .maxAge(Duration.ofDays(30))
                             .build();
+
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
                             .body(Map.of(
@@ -108,14 +132,17 @@ public class AuthController {
                             ));
                 }
 
-                // If OTP passed, but user didn’t choose to remember device
+                // ✅ OTP accepted but no token stored
+                System.out.println("✅ OTP accepted, but device not remembered.");
                 return ResponseEntity.ok(Map.of("authenticated", true));
             }
 
-            // ✅ User has no TOTP enabled
+
+            System.out.println("✅ TOTP is not enabled. Login successful.");
             return ResponseEntity.ok(Map.of("authenticated", true));
 
         } catch (AuthenticationException e) {
+            System.out.println("❌ Authentication failed: " + e.getMessage());
             return ResponseEntity.status(401).build();
         }
     }
