@@ -77,7 +77,10 @@ public class AuthController {
                             .build();
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                            .body(Map.of("authenticated", true));
+                            .body(Map.of(
+                                    "authenticated", true,
+                                    "deviceToken", deviceToken
+                            ));
                 }
 
                 // ✅ Enforce OTP if deviceToken is not valid
@@ -99,7 +102,10 @@ public class AuthController {
                             .build();
                     return ResponseEntity.ok()
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                            .body(Map.of("authenticated", true));
+                            .body(Map.of(
+                                    "authenticated", true,
+                                    "deviceToken", newToken
+                            ));
                 }
 
                 // If OTP passed, but user didn’t choose to remember device
