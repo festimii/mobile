@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../services/api_service.dart';
+import '../../providers/user_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -54,6 +56,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (res.statusCode == 200) {
+      await context.read<UserProvider>().setUsername(
+        username,
+      ); // ✅ Save to SharedPreferences
       if (!mounted) return;
       Navigator.pushReplacement(
         context,

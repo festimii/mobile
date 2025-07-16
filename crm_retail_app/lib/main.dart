@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 import 'features/auth/login_screen.dart';
 import 'features/theme/misty_dark_theme.dart';
 import 'features/theme/theme_notifier.dart';
+import 'providers/user_provider.dart'; // ✅ Add this
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeNotifier(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+        ChangeNotifierProvider(create: (_) => UserProvider()), // ✅
+      ],
       child: const MyApp(),
     ),
   );

@@ -55,21 +55,10 @@ public class AuthController {
 
             if (user.isTotpEnabled()) {
                 if (otp == null) {
-                    System.out.printf("OTP missing for user: %s%n", username);
                     return ResponseEntity.status(403).body("OTP required");
                 }
 
                 boolean isValid = userService.verifyTotp(user, otp);
-
-                // 🔍 Log TOTP debug info
-                System.out.printf("User: %s%n", username);
-                System.out.printf("Stored TOTP Secret: %s%n", user.getTotpSecret());
-                System.out.printf("Client OTP: %s%n", otp);
-
-                // OPTIONAL: print the expected code (only for debug; remove in production)
-                String expectedOtp = userService.generateCurrentTotpCode(user.getTotpSecret());
-                System.out.printf("Expected OTP: %s%n", expectedOtp);
-
                 if (!isValid) {
                     return ResponseEntity.status(403).body("Invalid OTP");
                 }
@@ -77,7 +66,6 @@ public class AuthController {
 
             return ResponseEntity.ok("Authenticated");
         } catch (AuthenticationException e) {
-            System.out.printf("Authentication failed for user: %s%n", username);
             return ResponseEntity.status(401).build();
         }
     }
@@ -110,5 +98,16 @@ public class AuthController {
         userService.disableTotp(user);
         return ResponseEntity.ok().build();
     }
-}
 
+    @GetMapping("/user/{username}")
+    public ResponseEntity<?> getUser(@PathVariable String username) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Map.of(
+                "username", user.getUsername(),
+                "totpEnabled", user.isTotpEnabled()
+        ));
+    }
+}

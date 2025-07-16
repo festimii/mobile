@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/theme_notifier.dart';
 import '../../profile/profile_screen.dart';
+import '../../../providers/user_provider.dart'; // ✅ Add this import
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -9,6 +10,7 @@ class SettingsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final username = context.watch<UserProvider>().username; // ✅ Get username
 
     return Scaffold(
       body: ListView(
@@ -21,7 +23,9 @@ class SettingsTab extends StatelessWidget {
             title: const Text("Profile"),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(username: username),
+                ),
               );
             },
           ),
@@ -59,6 +63,11 @@ class SettingsTab extends StatelessWidget {
               );
 
               if (confirm == true) {
+                context.read<UserProvider>().clear(); // ✅ Clear username
+                // Optionally clear other user data if needed
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Logged out successfully')),
+                );
                 Navigator.of(context).pushReplacementNamed('/login');
               }
             },

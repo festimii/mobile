@@ -20,7 +20,7 @@ public class User {
 
     @Column(nullable = false)
     private String password;
-
+    
     private String totpSecret;
     private boolean totpEnabled;
 
@@ -73,4 +73,5 @@ public class User {
     public void setTotpEnabled(boolean totpEnabled) {
         this.totpEnabled = totpEnabled;
     }
+
 }
