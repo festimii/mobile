@@ -1,6 +1,8 @@
 package com.vivacrm.crm.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -12,6 +14,7 @@ import com.vivacrm.crm.user.UserRepository;
 import com.vivacrm.crm.user.UserService;
 import com.vivacrm.crm.user.DeviceTokenService;
 
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
@@ -45,11 +48,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> login(
+            @RequestBody Map<String, String> body,
+            @CookieValue(value = "DEVICE_TOKEN", required = false) String deviceTokenCookie) {
         String username = body.get("username");
         String password = body.get("password");
         String otp = body.get("otp");
         String deviceToken = body.get("deviceToken");
+        if (deviceToken == null && deviceTokenCookie != null) {
+            deviceToken = deviceTokenCookie;
+        }
         boolean rememberDevice = Boolean.parseBoolean(body.getOrDefault("rememberDevice", "false"));
 
         try {
@@ -62,10 +70,14 @@ public class AuthController {
             if (user.isTotpEnabled()) {
                 // ✅ Check existing valid device token
                 if (deviceToken != null && deviceTokenService.isValid(user, deviceToken)) {
-                    return ResponseEntity.ok(Map.of(
-                            "authenticated", true,
-                            "deviceToken", deviceToken
-                    ));
+                    ResponseCookie cookie = ResponseCookie.from("DEVICE_TOKEN", deviceToken)
+                            .httpOnly(true)
+                            .path("/")
+                            .maxAge(Duration.ofDays(30))
+                            .build();
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                            .body(Map.of("authenticated", true));
                 }
 
                 // ✅ Enforce OTP if deviceToken is not valid
@@ -80,10 +92,14 @@ public class AuthController {
 
                 if (rememberDevice) {
                     String newToken = deviceTokenService.createToken(user);
-                    return ResponseEntity.ok(Map.of(
-                            "authenticated", true,
-                            "deviceToken", newToken
-                    ));
+                    ResponseCookie cookie = ResponseCookie.from("DEVICE_TOKEN", newToken)
+                            .httpOnly(true)
+                            .path("/")
+                            .maxAge(Duration.ofDays(30))
+                            .build();
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                            .body(Map.of("authenticated", true));
                 }
 
                 // If OTP passed, but user didn’t choose to remember device
