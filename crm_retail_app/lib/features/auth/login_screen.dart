@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../services/api_service.dart';
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _otpCtrl = TextEditingController();
   bool _obscurePassword = true;
   bool _needsOtp = false;
+  bool _rememberDevice = false;
   final ApiService _api = ApiService();
 
   // 🔁 TOTP countdown state
@@ -45,8 +47,15 @@ class _LoginScreenState extends State<LoginScreen> {
     final username = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
     final otp = _needsOtp ? _otpCtrl.text.trim() : null;
+    final deviceToken = context.read<UserProvider>().deviceToken;
 
-    final res = await _api.login(username, password, otp);
+    final res = await _api.login(
+      username,
+      password,
+      otp,
+      deviceToken: deviceToken.isNotEmpty ? deviceToken : null,
+      rememberDevice: _rememberDevice,
+    );
 
     if (res == null) {
       ScaffoldMessenger.of(
@@ -56,9 +65,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (res.statusCode == 200) {
-      await context.read<UserProvider>().setUsername(
-        username,
-      ); // ✅ Save to SharedPreferences
+      final data = res.body.isNotEmpty ? jsonDecode(res.body) as Map<String, dynamic> : <String, dynamic>{};
+      final newToken = data['deviceToken'] as String?;
+
+      await context.read<UserProvider>().setUsername(username);
+      if (newToken != null) {
+        await context.read<UserProvider>().setDeviceToken(newToken);
+      }
+
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -196,6 +210,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       );
                     },
+                  ),
+
+                  CheckboxListTile(
+                    title: const Text('Trust this device'),
+                    value: _rememberDevice,
+                    onChanged: (v) => setState(() => _rememberDevice = v ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
                   ),
 
                   const SizedBox(height: 24),

@@ -20,8 +20,10 @@ class ApiService {
   Future<http.Response?> login(
     String username,
     String password,
-    String? otp,
-  ) async {
+    String? otp, {
+    String? deviceToken,
+    bool rememberDevice = false,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -30,6 +32,8 @@ class ApiService {
           'username': username,
           'password': password,
           if (otp != null) 'otp': otp, // ✅ only include if available
+          if (deviceToken != null) 'deviceToken': deviceToken,
+          if (rememberDevice) 'rememberDevice': rememberDevice,
         }),
       );
 

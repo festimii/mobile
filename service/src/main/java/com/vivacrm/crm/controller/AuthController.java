@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import com.vivacrm.crm.user.User;
 import com.vivacrm.crm.user.UserRepository;
 import com.vivacrm.crm.user.UserService;
+import com.vivacrm.crm.user.DeviceTokenService;
 
 import java.util.Map;
 
@@ -20,11 +21,13 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final DeviceTokenService deviceTokenService;
 
-    public AuthController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository) {
+    public AuthController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository, DeviceTokenService deviceTokenService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.deviceTokenService = deviceTokenService;
     }
 
     @PostMapping("/register")
@@ -46,6 +49,8 @@ public class AuthController {
         String username = body.get("username");
         String password = body.get("password");
         String otp = body.get("otp");
+        String deviceToken = body.get("deviceToken");
+        boolean rememberDevice = Boolean.parseBoolean(body.getOrDefault("rememberDevice", "false"));
 
         try {
             Authentication auth = authenticationManager.authenticate(
@@ -54,6 +59,10 @@ public class AuthController {
             User user = userRepository.findByUsername(username).orElseThrow();
 
             if (user.isTotpEnabled()) {
+                if (deviceToken != null && deviceTokenService.isValid(user, deviceToken)) {
+                    return ResponseEntity.ok(Map.of("authenticated", true));
+                }
+
                 if (otp == null) {
                     return ResponseEntity.status(403).body("OTP required");
                 }
@@ -62,9 +71,16 @@ public class AuthController {
                 if (!isValid) {
                     return ResponseEntity.status(403).body("Invalid OTP");
                 }
+
+                if (rememberDevice) {
+                    String newToken = deviceTokenService.createToken(user);
+                    return ResponseEntity.ok(Map.of(
+                            "authenticated", true,
+                            "deviceToken", newToken));
+                }
             }
 
-            return ResponseEntity.ok("Authenticated");
+            return ResponseEntity.ok(Map.of("authenticated", true));
         } catch (AuthenticationException e) {
             return ResponseEntity.status(401).build();
         }
