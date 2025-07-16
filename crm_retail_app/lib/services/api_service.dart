@@ -73,4 +73,40 @@ class ApiService {
         )
         .toList();
   }
+
+  /// Returns whether OTP is enabled for the user.
+  Future<bool> fetchOtpStatus(String username) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl${ApiRoutes.totpStatus}?username=$username'),
+    );
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      return data['enabled'] as bool;
+    }
+    return false;
+  }
+
+  /// Enables OTP and returns the generated secret.
+  Future<String?> enableOtp(String username) async {
+    final res = await http.post(
+      _uri(ApiRoutes.enableTotp),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username}),
+    );
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      return data['totpSecret'] as String;
+    }
+    return null;
+  }
+
+  /// Disables OTP for the user.
+  Future<bool> disableOtp(String username) async {
+    final res = await http.post(
+      _uri(ApiRoutes.disableTotp),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username}),
+    );
+    return res.statusCode == 200;
+  }
 }

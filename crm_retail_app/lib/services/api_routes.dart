@@ -8,4 +8,7 @@ class ApiRoutes {
   static const weeklySales = '/sales/weekly';
   static const hourlySales = '/sales/hourly';
   static const inventory = '/inventory';
+  static const totpStatus = '/auth/totp-status';
+  static const enableTotp = '/auth/enable-totp';
+  static const disableTotp = '/auth/disable-totp';
 }

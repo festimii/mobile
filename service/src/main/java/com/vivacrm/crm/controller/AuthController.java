@@ -38,7 +38,7 @@ public class AuthController {
         }
 
         User user = userService.register(username, email, password);
-        return ResponseEntity.ok(Map.of("totpSecret", user.getTotpSecret()));
+        return ResponseEntity.ok(Map.of("totpEnabled", user.isTotpEnabled()));
     }
 
     @PostMapping("/login")
@@ -80,5 +80,35 @@ public class AuthController {
             System.out.printf("Authentication failed for user: %s%n", username);
             return ResponseEntity.status(401).build();
         }
-    }}
+    }
+
+    @GetMapping("/totp-status")
+    public ResponseEntity<?> totpStatus(@RequestParam String username) {
+        return userRepository.findByUsername(username)
+                .map(u -> ResponseEntity.ok(Map.of("enabled", u.isTotpEnabled())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/enable-totp")
+    public ResponseEntity<?> enableTotp(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body("User not found");
+        }
+        String secret = userService.enableTotp(user);
+        return ResponseEntity.ok(Map.of("totpSecret", secret));
+    }
+
+    @PostMapping("/disable-totp")
+    public ResponseEntity<?> disableTotp(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body("User not found");
+        }
+        userService.disableTotp(user);
+        return ResponseEntity.ok().build();
+    }
+}
 
