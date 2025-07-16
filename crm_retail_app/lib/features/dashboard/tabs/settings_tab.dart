@@ -63,8 +63,8 @@ class SettingsTab extends StatelessWidget {
               );
 
               if (confirm == true) {
-                context.read<UserProvider>().clear(); // ✅ Clear username
-                // Optionally clear other user data if needed
+                // Preserve device token so trusted status isn't lost
+                await context.read<UserProvider>().logout();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Logged out successfully')),
                 );

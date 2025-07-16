@@ -60,4 +60,17 @@ class UserProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  /// Clears only the persisted username. The device token is preserved so the
+  /// device remains trusted for future logins.
+  Future<void> logout() async {
+    _username = '';
+    try {
+      await _secureStorage.delete(key: _keyUsername);
+      debugPrint('🧹 [UserProvider] Cleared username');
+    } catch (e) {
+      debugPrint('❌ [UserProvider] Failed to clear username: $e');
+    }
+    notifyListeners();
+  }
 }
