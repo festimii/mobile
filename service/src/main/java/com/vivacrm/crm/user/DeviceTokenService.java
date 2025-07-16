@@ -1,7 +1,7 @@
 package com.vivacrm.crm.user;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
-
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +13,7 @@ public class DeviceTokenService {
     }
 
     public String createToken(User user) {
+        repo.deleteAllByUser(user); // 1 token per user
         String token = UUID.randomUUID().toString();
         DeviceToken dt = new DeviceToken();
         dt.setToken(token);
@@ -22,6 +23,8 @@ public class DeviceTokenService {
     }
 
     public boolean isValid(User user, String token) {
-        return repo.findByTokenAndUser(token, user).isPresent();
+        return repo.findByTokenAndUser(token, user)
+                .map(dt -> !dt.getCreatedAt().isBefore(LocalDateTime.now().minusDays(30)))
+                .orElse(false);
     }
 }

@@ -7,14 +7,14 @@ class UserProvider with ChangeNotifier {
 
   String _username = '';
   String _deviceToken = '';
+
   String get username => _username;
   String get deviceToken => _deviceToken;
 
-  UserProvider() {
-    _loadUsername();
-  }
+  UserProvider();
 
-  Future<void> _loadUsername() async {
+  /// Explicit init method to be called from main()
+  Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _username = prefs.getString(_keyUsername) ?? '';
     _deviceToken = prefs.getString(_keyDeviceToken) ?? '';

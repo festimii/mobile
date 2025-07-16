@@ -1,6 +1,9 @@
 package com.vivacrm.crm.user;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 public class DeviceToken {
@@ -13,6 +16,9 @@ public class DeviceToken {
 
     @ManyToOne(optional = false)
     private User user;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     public Long getId() {
         return id;
@@ -36,5 +42,9 @@ public class DeviceToken {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 }

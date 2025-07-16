@@ -58,11 +58,17 @@ public class AuthController {
 
             User user = userRepository.findByUsername(username).orElseThrow();
 
+            // ✅ Check TOTP if enabled
             if (user.isTotpEnabled()) {
+                // ✅ Check existing valid device token
                 if (deviceToken != null && deviceTokenService.isValid(user, deviceToken)) {
-                    return ResponseEntity.ok(Map.of("authenticated", true));
+                    return ResponseEntity.ok(Map.of(
+                            "authenticated", true,
+                            "deviceToken", deviceToken
+                    ));
                 }
 
+                // ✅ Enforce OTP if deviceToken is not valid
                 if (otp == null) {
                     return ResponseEntity.status(403).body("OTP required");
                 }
@@ -76,15 +82,22 @@ public class AuthController {
                     String newToken = deviceTokenService.createToken(user);
                     return ResponseEntity.ok(Map.of(
                             "authenticated", true,
-                            "deviceToken", newToken));
+                            "deviceToken", newToken
+                    ));
                 }
+
+                // If OTP passed, but user didn’t choose to remember device
+                return ResponseEntity.ok(Map.of("authenticated", true));
             }
 
+            // ✅ User has no TOTP enabled
             return ResponseEntity.ok(Map.of("authenticated", true));
+
         } catch (AuthenticationException e) {
             return ResponseEntity.status(401).build();
         }
     }
+
 
     @GetMapping("/totp-status")
     public ResponseEntity<?> totpStatus(@RequestParam String username) {
