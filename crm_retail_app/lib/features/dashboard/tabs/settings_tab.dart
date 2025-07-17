@@ -63,7 +63,9 @@ class SettingsTab extends StatelessWidget {
               );
 
               if (confirm == true) {
-                context.read<UserProvider>().clear(); // ✅ Clear username
+                // Preserve the device token so a trusted device
+                // continues to bypass OTP on next login.
+                context.read<UserProvider>().clear();
                 // Optionally clear other user data if needed
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Logged out successfully')),

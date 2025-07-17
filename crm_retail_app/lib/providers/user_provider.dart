@@ -48,16 +48,27 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> clear() async {
+  /// Clears the stored username. The device token is kept so a trusted
+  /// device can still bypass OTP on the next login. Pass `true` to
+  /// [removeDeviceToken] to wipe the token as well.
+  Future<void> clear({bool removeDeviceToken = false}) async {
     _username = '';
-    _deviceToken = '';
+    if (removeDeviceToken) {
+      _deviceToken = '';
+    }
+
     try {
       await _secureStorage.delete(key: _keyUsername);
-      await _secureStorage.delete(key: _keyDeviceToken);
-      debugPrint('🧹 [UserProvider] Cleared username and deviceToken');
+      if (removeDeviceToken) {
+        await _secureStorage.delete(key: _keyDeviceToken);
+        debugPrint('🧹 [UserProvider] Cleared username and deviceToken');
+      } else {
+        debugPrint('🧹 [UserProvider] Cleared username');
+      }
     } catch (e) {
       debugPrint('❌ [UserProvider] Failed to clear secure storage: $e');
     }
+
     notifyListeners();
   }
 }
