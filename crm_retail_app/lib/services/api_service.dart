@@ -54,15 +54,56 @@ class ApiService {
     final res = await http.get(_uri(ApiRoutes.metrics));
     final data = jsonDecode(res.body) as List<dynamic>;
     return data
-        .map(
-          (e) => SummaryMetric(
-            title: e['title'],
-            value: e['value'],
-            icon: Icons.insert_chart, // placeholder
-            color: Colors.teal,
-          ),
-        )
+        .map((e) {
+          final title = e['title'] as String;
+          return SummaryMetric(
+            title: title,
+            value: e['value'].toString(),
+            icon: _iconForTitle(title),
+            color: _colorForTitle(title),
+          );
+        })
         .toList();
+  }
+
+  IconData _iconForTitle(String title) {
+    switch (title) {
+      case 'Total Revenue':
+        return Icons.attach_money;
+      case 'Transactions':
+        return Icons.shopping_cart_checkout;
+      case 'Avg Basket Size':
+        return Icons.shopping_bag;
+      case 'Top Product Code':
+      case 'Top Product Name':
+        return Icons.star;
+      case 'Returns Today':
+        return Icons.undo;
+      case 'Low Inventory Count':
+        return Icons.inventory_2;
+      default:
+        return Icons.insert_chart;
+    }
+  }
+
+  Color _colorForTitle(String title) {
+    switch (title) {
+      case 'Total Revenue':
+        return Colors.green;
+      case 'Transactions':
+        return Colors.blue;
+      case 'Avg Basket Size':
+        return Colors.indigo;
+      case 'Top Product Code':
+      case 'Top Product Name':
+        return Colors.amber;
+      case 'Returns Today':
+        return Colors.redAccent;
+      case 'Low Inventory Count':
+        return Colors.orange;
+      default:
+        return Colors.teal;
+    }
   }
 
   Future<List<StoreSales>> fetchStoreSales() async {
