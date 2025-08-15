@@ -1,5 +1,7 @@
+// src/main/java/com/vivacrm/crm/service/DashboardService.java
 package com.vivacrm.crm.service;
 
+import com.vivacrm.crm.service.dto.*;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,41 +15,32 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.util.*;
 
-/**
- * Robust caller for dbo.SP_GetDashboardData.
- *
- * Supports both:
- *  1) Result-set style procs (first row contains metric columns)
- *  2) OUT-parameter style procs (named outputs)
- *
- * Recommendation for the T-SQL proc:
- *   - Put "SET NOCOUNT ON;" at the top to avoid extra update counts breaking result-set detection.
- *   - Return either ONE result set with the expected columns OR define OUT params with the same names.
- */
 @Service
 public class DashboardService {
 
     private final JdbcTemplate sqlServerJdbc;
-    private final SimpleJdbcCall spResultSet; // expects a result set
-    private final SimpleJdbcCall spOutParams; // expects named OUT parameters
+    private final SimpleJdbcCall spResultSet; // result-set mode
+    private final SimpleJdbcCall spOutParams; // OUT-parameter mode (metrics fallback)
 
     public DashboardService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbcTemplate) {
         jdbcTemplate.setResultsMapCaseInsensitive(true);
         this.sqlServerJdbc = jdbcTemplate;
 
-        // Path A: result set mapping (first result set -> List<Map<String,Object>>)
+        // Expect up to 4 result sets
         this.spResultSet = new SimpleJdbcCall(sqlServerJdbc)
                 .withSchemaName("dbo")
                 .withProcedureName("SP_GetDashboardData")
-                .returningResultSet("#result-set-1", new ColumnMapRowMapper());
+                .returningResultSet("#result-set-1", new ColumnMapRowMapper())
+                .returningResultSet("#result-set-2", new ColumnMapRowMapper())
+                .returningResultSet("#result-set-3", new ColumnMapRowMapper())
+                .returningResultSet("#result-set-4", new ColumnMapRowMapper());
 
-        // Path B: OUT parameters (disable metadata, declare names/types explicitly)
+        // Metrics OUT-param fallback (if the proc is implemented that way)
         this.spOutParams = new SimpleJdbcCall(sqlServerJdbc)
                 .withSchemaName("dbo")
                 .withProcedureName("SP_GetDashboardData")
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
-                        // Adjust Types if your proc uses other SQL types
                         new org.springframework.jdbc.core.SqlOutParameter("TotalRevenue",      Types.DECIMAL),
                         new org.springframework.jdbc.core.SqlOutParameter("Transactions",      Types.BIGINT),
                         new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSize",     Types.DECIMAL),
@@ -58,81 +51,97 @@ public class DashboardService {
                 );
     }
 
-    /**
-     * Calls the SP for today's metrics. If your proc needs a date parameter, switch to getMetrics(LocalDate).
-     */
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getMetrics() {
+    public DashboardPayload getMetrics() {
         return getMetrics(LocalDate.now());
     }
 
-    /**
-     * Calls the SP with a business date parameter (if your proc accepts one).
-     * If your proc has no input params, the param map will be ignored by SQL Server.
-     */
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getMetrics(LocalDate date) {
-        MapSqlParameterSource in = new MapSqlParameterSource()
-                // If the proc expects a date parameter, name it accordingly (e.g., @p_Date)
-                // .addValue("p_Date", java.sql.Date.valueOf(date))
-                ;
+    public DashboardPayload getMetrics(LocalDate date) {
+        MapSqlParameterSource in = new MapSqlParameterSource();
+        // If your proc expects a date: in.addValue("p_Date", java.sql.Date.valueOf(date));
 
-        // --- Try result-set mode first ---
+        List<Map<String, Object>> rs1 = Collections.emptyList();
+        List<Map<String, Object>> rs2 = Collections.emptyList();
+        List<Map<String, Object>> rs3 = Collections.emptyList();
+        List<Map<String, Object>> rs4 = Collections.emptyList();
+        Map<String, Object> metricsRow = Collections.emptyMap();
+
+        // Try multi-result-set mode first
         try {
             Map<String, Object> out = spResultSet.execute(in);
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> rows =
-                    (List<Map<String, Object>>) out.getOrDefault("#result-set-1", Collections.emptyList());
-
-            if (!rows.isEmpty()) {
-                Map<String, Object> row = rows.get(0);
-                return buildPayloadFromMap(row);
+            rs1 = getList(out, "#result-set-1", "rs");           // metrics row
+            rs2 = getList(out, "#result-set-2", "daily");        // Label, Amount
+            rs3 = getList(out, "#result-set-3", "hourly");       // HourLabel, Amount
+            rs4 = getList(out, "#result-set-4", "stores");       // Store, LastYear, ThisYear
+            metricsRow = rs1.isEmpty() ? Collections.emptyMap() : rs1.get(0);
+        } catch (Exception ignore) {
+            // Fall back to OUT-params for metrics only
+            try {
+                Map<String, Object> out = spOutParams.execute(in);
+                metricsRow = out;
+            } catch (Exception ignoredToo) {
+                metricsRow = Collections.emptyMap();
             }
-        } catch (Exception ignored) {
-            // Fall through to OUT-parameter mode
         }
 
-        // --- Fallback: OUT-parameter mode ---
-        try {
-            Map<String, Object> out = spOutParams.execute(in);
-            return buildPayloadFromMap(out);
-        } catch (Exception ex) {
-            // Final fallback with zeros to keep endpoint stable
-            return zeroPayload();
-        }
+        // Build payload parts
+        List<Metric> metrics = List.of(
+                new Metric("Total Revenue",      asString(metricsRow, "TotalRevenue", "0")),
+                new Metric("Transactions",       asString(metricsRow, "Transactions", "0")),
+                new Metric("Avg Basket Size",    asString(metricsRow, "AvgBasketSize", "0")),
+                new Metric("Top Product Code",   asString(metricsRow, "TopProductCode", "")),
+                new Metric("Top Product Name",   asString(metricsRow, "TopProductName", "")),
+                new Metric("Returns Today",      asString(metricsRow, "ReturnsToday", "0")),
+                new Metric("Low Inventory Count",asString(metricsRow, "LowInventoryCount", "0"))
+        );
+
+        List<Point> dailySeries = mapPoints(rs2, "Label", "Amount");          // e.g., 2025-08-09 / 1681008.68
+        List<Point> hourlySeries = mapPoints(rs3, "HourLabel", "Amount");     // e.g., 5h / 7.05
+        List<StoreCompare> storeComparison = mapStores(rs4, "Store", "LastYear", "ThisYear"); // e.g., VFS ... / 3466.02 / 3329.39
+
+        return new DashboardPayload(metrics, dailySeries, hourlySeries, storeComparison);
     }
 
     // ---------- helpers ----------
 
-    private static List<Map<String, Object>> buildPayloadFromMap(Map<String, Object> source) {
-        return List.of(
-                metric("Total Revenue",       asString(source, "TotalRevenue", "0")),
-                metric("Transactions",        asString(source, "Transactions", "0")),
-                metric("Avg Basket Size",     asString(source, "AvgBasketSize", "0")),
-                metric("Top Product Code",    asString(source, "TopProductCode", "")),
-                metric("Top Product Name",    asString(source, "TopProductName", "")),
-                metric("Returns Today",       asString(source, "ReturnsToday", "0")),
-                metric("Low Inventory Count", asString(source, "LowInventoryCount", "0"))
-        );
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> getList(Map<String, Object> out, String primaryKey, String altKey) {
+        Object v = out.get(primaryKey);
+        if (v instanceof List<?> l && !l.isEmpty() && l.get(0) instanceof Map) return (List<Map<String, Object>>) v;
+        v = out.get(altKey);
+        if (v instanceof List<?> l2 && !l2.isEmpty() && l2.get(0) instanceof Map) return (List<Map<String, Object>>) v;
+        // Some drivers expose first set as "#result-set-1" only; others may use "RS1" etc.
+        return Collections.emptyList();
     }
 
-    private static List<Map<String, Object>> zeroPayload() {
-        return List.of(
-                metric("Total Revenue", "0"),
-                metric("Transactions", "0"),
-                metric("Avg Basket Size", "0"),
-                metric("Top Product Code", ""),
-                metric("Top Product Name", ""),
-                metric("Returns Today", "0"),
-                metric("Low Inventory Count", "0")
-        );
+    private static List<Point> mapPoints(List<Map<String, Object>> rows, String labelCol, String amtCol) {
+        List<Point> out = new ArrayList<>(rows.size());
+        for (Map<String, Object> r : rows) {
+            String label = String.valueOf(r.getOrDefault(labelCol, ""));
+            BigDecimal amount = toDecimal(r.get(amtCol));
+            out.add(new Point(label, amount));
+        }
+        return out;
     }
 
-    private static Map<String, Object> metric(String title, String value) {
-        Map<String, Object> m = new LinkedHashMap<>(2);
-        m.put("title", title);
-        m.put("value", value);
-        return m;
+    private static List<StoreCompare> mapStores(List<Map<String, Object>> rows, String storeCol,
+                                                String lastYearCol, String thisYearCol) {
+        List<StoreCompare> out = new ArrayList<>(rows.size());
+        for (Map<String, Object> r : rows) {
+            String store = String.valueOf(r.getOrDefault(storeCol, ""));
+            BigDecimal lastYear = toDecimal(r.get(lastYearCol));
+            BigDecimal thisYear = toDecimal(r.get(thisYearCol));
+            out.add(new StoreCompare(store, lastYear, thisYear));
+        }
+        return out;
+    }
+
+    private static BigDecimal toDecimal(Object v) {
+        if (v == null) return BigDecimal.ZERO;
+        if (v instanceof BigDecimal bd) return bd;
+        if (v instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+        try { return new BigDecimal(String.valueOf(v)); } catch (Exception e) { return BigDecimal.ZERO; }
     }
 
     private static String asString(Map<String, Object> map, String key, String def) {
@@ -141,6 +150,5 @@ public class DashboardService {
         if (v == null) return def;
         if (v instanceof BigDecimal bd) return bd.stripTrailingZeros().toPlainString();
         return String.valueOf(v);
-        // Numbers/Strings/Null all normalize to String
     }
 }
