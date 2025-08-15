@@ -3,108 +3,130 @@ package com.vivacrm.crm.service;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.ResultSetMetaData;
+import java.sql.Types;
+import java.time.LocalDate;
 import java.util.*;
 
 /**
- * Calls SQL Server stored procedure dbo.SP_GetDashboardData and maps the first row
- * of its result set into the required List<Map<title,value>> payload.
+ * Robust caller for dbo.SP_GetDashboardData.
  *
- * Assumptions (adjust if different):
- *  - The proc returns a single result set with at least these columns:
- *    TotalRevenue, Transactions, AvgBasketSize, TopProductCode, TopProductName,
- *    ReturnsToday, LowInventoryCount
+ * Supports both:
+ *  1) Result-set style procs (first row contains metric columns)
+ *  2) OUT-parameter style procs (named outputs)
  *
- * If your proc returns OUT parameters instead of a result set, see the commented
- * "OUT parameters" block below.
+ * Recommendation for the T-SQL proc:
+ *   - Put "SET NOCOUNT ON;" at the top to avoid extra update counts breaking result-set detection.
+ *   - Return either ONE result set with the expected columns OR define OUT params with the same names.
  */
 @Service
 public class DashboardService {
 
     private final JdbcTemplate sqlServerJdbc;
-    private final SimpleJdbcCall spGetDashboardData;
+    private final SimpleJdbcCall spResultSet; // expects a result set
+    private final SimpleJdbcCall spOutParams; // expects named OUT parameters
 
-    public DashboardService(@Qualifier("sqlServerJdbcTemplate") JdbcTemplate jdbcTemplate) {
-        // Make column-name lookup case-insensitive for Map results
+    public DashboardService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbcTemplate) {
         jdbcTemplate.setResultsMapCaseInsensitive(true);
         this.sqlServerJdbc = jdbcTemplate;
 
-        // Configure once and reuse (thread-safe after compilation)
-        this.spGetDashboardData = new SimpleJdbcCall(sqlServerJdbc)
+        // Path A: result set mapping (first result set -> List<Map<String,Object>>)
+        this.spResultSet = new SimpleJdbcCall(sqlServerJdbc)
                 .withSchemaName("dbo")
                 .withProcedureName("SP_GetDashboardData")
-                // Expect a result set; map each row as a Map<String,Object>
-                .returningResultSet("rs", new ColumnMapRowMapper());
-        // If your driver/proc exposes a different key, change "rs" accordingly.
-        // For many SQL Server procs, SimpleJdbcCall uses the name you provide here.
+                .returningResultSet("#result-set-1", new ColumnMapRowMapper());
+
+        // Path B: OUT parameters (disable metadata, declare names/types explicitly)
+        this.spOutParams = new SimpleJdbcCall(sqlServerJdbc)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_GetDashboardData")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        // Adjust Types if your proc uses other SQL types
+                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenue",      Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("Transactions",      Types.BIGINT),
+                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSize",     Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopProductCode",    Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopProductName",    Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsToday",      Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("LowInventoryCount", Types.INTEGER)
+                );
     }
 
+    /**
+     * Calls the SP for today's metrics. If your proc needs a date parameter, switch to getMetrics(LocalDate).
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getMetrics() {
+        return getMetrics(LocalDate.now());
+    }
+
+    /**
+     * Calls the SP with a business date parameter (if your proc accepts one).
+     * If your proc has no input params, the param map will be ignored by SQL Server.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMetrics(LocalDate date) {
+        MapSqlParameterSource in = new MapSqlParameterSource()
+                // If the proc expects a date parameter, name it accordingly (e.g., @p_Date)
+                // .addValue("p_Date", java.sql.Date.valueOf(date))
+                ;
+
+        // --- Try result-set mode first ---
         try {
-            final Map<String, Object> out = spGetDashboardData.execute();
-
-            // Try common keys for a single result set
+            Map<String, Object> out = spResultSet.execute(in);
             @SuppressWarnings("unchecked")
-            List<Map<String, Object>> rows = (List<Map<String, Object>>) (
-                    out.containsKey("rs") ? out.get("rs") :
-                            out.containsKey("#result-set-1") ? out.get("#result-set-1") :
-                                    Collections.emptyList()
-            );
+            List<Map<String, Object>> rows =
+                    (List<Map<String, Object>>) out.getOrDefault("#result-set-1", Collections.emptyList());
 
-            final Map<String, Object> row = rows.isEmpty() ? Collections.emptyMap() : rows.get(0);
+            if (!rows.isEmpty()) {
+                Map<String, Object> row = rows.get(0);
+                return buildPayloadFromMap(row);
+            }
+        } catch (Exception ignored) {
+            // Fall through to OUT-parameter mode
+        }
 
-            return List.of(
-                    metric("Total Revenue",      asString(row, "TotalRevenue", "0")),
-                    metric("Transactions",       asString(row, "Transactions", "0")),
-                    metric("Avg Basket Size",    asString(row, "AvgBasketSize", "0")),
-                    metric("Top Product Code",   asString(row, "TopProductCode", "")),
-                    metric("Top Product Name",   asString(row, "TopProductName", "")),
-                    metric("Returns Today",      asString(row, "ReturnsToday", "0")),
-                    metric("Low Inventory Count",asString(row, "LowInventoryCount", "0"))
-            );
-
+        // --- Fallback: OUT-parameter mode ---
+        try {
+            Map<String, Object> out = spOutParams.execute(in);
+            return buildPayloadFromMap(out);
         } catch (Exception ex) {
-            // Fallback with zeros to keep the endpoint stable
-            return List.of(
-                    metric("Total Revenue", "0"),
-                    metric("Transactions", "0"),
-                    metric("Avg Basket Size", "0"),
-                    metric("Top Product Code", ""),
-                    metric("Top Product Name", ""),
-                    metric("Returns Today", "0"),
-                    metric("Low Inventory Count", "0")
-            );
+            // Final fallback with zeros to keep endpoint stable
+            return zeroPayload();
         }
     }
 
-    /*
-     * --- Alternative: if the procedure returns OUT parameters (no result set) ---
-     *
-     * Enable this configuration instead of returningResultSet(...):
-     *
-     * this.spGetDashboardData = new SimpleJdbcCall(sqlServerJdbc)
-     *      .withSchemaName("dbo")
-     *      .withProcedureName("SP_GetDashboardData")
-     *      .withoutProcedureColumnMetaDataAccess()
-     *      .declareParameters(
-     *          new SqlOutParameter("TotalRevenue",     Types.DECIMAL),
-     *          new SqlOutParameter("Transactions",     Types.BIGINT),
-     *          new SqlOutParameter("AvgBasketSize",    Types.DECIMAL),
-     *          new SqlOutParameter("TopProductCode",   Types.VARCHAR),
-     *          new SqlOutParameter("TopProductName",   Types.VARCHAR),
-     *          new SqlOutParameter("ReturnsToday",     Types.INTEGER),
-     *          new SqlOutParameter("LowInventoryCount",Types.INTEGER)
-     *      );
-     *
-     * Then read directly from the 'out' map:
-     * String totalRevenue = asString(out, "TotalRevenue", "0");
-     */
+    // ---------- helpers ----------
+
+    private static List<Map<String, Object>> buildPayloadFromMap(Map<String, Object> source) {
+        return List.of(
+                metric("Total Revenue",       asString(source, "TotalRevenue", "0")),
+                metric("Transactions",        asString(source, "Transactions", "0")),
+                metric("Avg Basket Size",     asString(source, "AvgBasketSize", "0")),
+                metric("Top Product Code",    asString(source, "TopProductCode", "")),
+                metric("Top Product Name",    asString(source, "TopProductName", "")),
+                metric("Returns Today",       asString(source, "ReturnsToday", "0")),
+                metric("Low Inventory Count", asString(source, "LowInventoryCount", "0"))
+        );
+    }
+
+    private static List<Map<String, Object>> zeroPayload() {
+        return List.of(
+                metric("Total Revenue", "0"),
+                metric("Transactions", "0"),
+                metric("Avg Basket Size", "0"),
+                metric("Top Product Code", ""),
+                metric("Top Product Name", ""),
+                metric("Returns Today", "0"),
+                metric("Low Inventory Count", "0")
+        );
+    }
 
     private static Map<String, Object> metric(String title, String value) {
         Map<String, Object> m = new LinkedHashMap<>(2);
@@ -119,5 +141,6 @@ public class DashboardService {
         if (v == null) return def;
         if (v instanceof BigDecimal bd) return bd.stripTrailingZeros().toPlainString();
         return String.valueOf(v);
+        // Numbers/Strings/Null all normalize to String
     }
 }
