@@ -78,25 +78,4 @@ class MockApiService {
       );
     });
   }
-
-  Future<List<RecentCustomer>> fetchRecentCustomers() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return [
-      RecentCustomer(
-        name: 'Alice Johnson',
-        totalSpent: 250.50,
-        lastPurchase: '12 Sep',
-      ),
-      RecentCustomer(
-        name: 'Bob Smith',
-        totalSpent: 190.00,
-        lastPurchase: '10 Sep',
-      ),
-      RecentCustomer(
-        name: 'Caroline Lee',
-        totalSpent: 320.10,
-        lastPurchase: '09 Sep',
-      ),
-    ];
-  }
 }
