@@ -52,8 +52,9 @@ class ApiService {
 
   Future<List<SummaryMetric>> fetchMetrics() async {
     final res = await http.get(_uri(ApiRoutes.metrics));
-    final data = jsonDecode(res.body) as List<dynamic>;
-    return data
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final metricsJson = data['metrics'] as List<dynamic>? ?? [];
+    return metricsJson
         .map((e) {
           final title = e['title'] as String;
           return SummaryMetric(
@@ -64,6 +65,57 @@ class ApiService {
           );
         })
         .toList();
+  }
+
+  /// Fetches dashboard data including metrics, sales series and store
+  /// comparisons. The backend returns a `DashboardPayload` object which is
+  /// mapped into strongly typed models for the UI layer.
+  Future<DashboardData> fetchDashboard() async {
+    final res = await http.get(_uri(ApiRoutes.metrics));
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+
+    final metrics = (data['metrics'] as List<dynamic>? ?? [])
+        .map((e) {
+          final title = e['title'] as String;
+          return SummaryMetric(
+            title: title,
+            value: e['value'].toString(),
+            icon: _iconForTitle(title),
+            color: _colorForTitle(title),
+          );
+        })
+        .toList();
+
+    final daily = (data['dailySeries'] as List<dynamic>? ?? [])
+        .map((e) => SalesSeries(
+              e['label'] as String,
+              (e['amount'] as num).toDouble(),
+            ))
+        .toList();
+
+    final hourly = (data['hourlySeries'] as List<dynamic>? ?? [])
+        .map((e) => SalesSeries(
+              e['label'] as String,
+              (e['amount'] as num).toDouble(),
+            ))
+        .toList();
+
+    final stores = (data['storeComparison'] as List<dynamic>? ?? [])
+        .map(
+          (e) => StoreSales(
+            store: e['store'] as String,
+            lastYear: (e['lastYear'] as num).toDouble(),
+            thisYear: (e['thisYear'] as num).toDouble(),
+          ),
+        )
+        .toList();
+
+    return DashboardData(
+      metrics: metrics,
+      dailySales: daily,
+      hourlySales: hourly,
+      storeSales: stores,
+    );
   }
 
   IconData _iconForTitle(String title) {
