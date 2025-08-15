@@ -225,9 +225,9 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
     }).toList();
 
     if (_searchCtrl.text.isNotEmpty) {
-      final query = _searchCtrl.text.toLowerCase();
+      final query = _searchCtrl.text.trim().toLowerCase();
       filtered.retainWhere(
-          (s) => s.store.toLowerCase().contains(query));
+          (s) => s.store.toLowerCase().trim().contains(query));
     }
 
     filtered.sort((a, b) {

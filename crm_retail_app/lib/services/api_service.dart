@@ -103,7 +103,7 @@ class ApiService {
     final stores = (data['storeComparison'] as List<dynamic>? ?? [])
         .map(
           (e) => StoreSales(
-            store: e['store'] as String,
+            store: (e['store'] as String).trim(),
             lastYear: (e['lastYear'] as num).toDouble(),
             thisYear: (e['thisYear'] as num).toDouble(),
           ),
@@ -164,7 +164,7 @@ class ApiService {
     return data
         .map(
           (e) => StoreSales(
-            store: e['store'],
+            store: (e['store'] as String).trim(),
             lastYear: (e['lastYear'] as num).toDouble(),
             thisYear: (e['thisYear'] as num).toDouble(),
           ),
