@@ -182,6 +182,8 @@ class RecentCustomerTile extends StatelessWidget {
 
 enum StoreFilter { all, positive, negative }
 
+enum StoreSort { storeNumber, percentChange }
+
 class StoreSalesTable extends StatefulWidget {
   final List<StoreSales> salesData;
 
@@ -192,8 +194,9 @@ class StoreSalesTable extends StatefulWidget {
 }
 
 class _StoreSalesTableState extends State<StoreSalesTable> {
-  bool sortAscending = false;
+  bool sortAscending = true;
   StoreFilter filter = StoreFilter.all;
+  StoreSort sortBy = StoreSort.storeNumber;
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
@@ -227,12 +230,17 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
           (s) => s.store.toLowerCase().contains(query));
     }
 
-    filtered.sort(
-      (a, b) =>
-          sortAscending
-              ? a.percentChange.compareTo(b.percentChange)
-              : b.percentChange.compareTo(a.percentChange),
-    );
+    filtered.sort((a, b) {
+      int comparison;
+      if (sortBy == StoreSort.storeNumber) {
+        final aNum = int.tryParse(RegExp(r'\d+').firstMatch(a.store)?.group(0) ?? '') ?? 0;
+        final bNum = int.tryParse(RegExp(r'\d+').firstMatch(b.store)?.group(0) ?? '') ?? 0;
+        comparison = aNum.compareTo(bNum);
+      } else {
+        comparison = a.percentChange.compareTo(b.percentChange);
+      }
+      return sortAscending ? comparison : -comparison;
+    });
     return filtered;
   }
 
@@ -263,6 +271,21 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
               ),
             ],
             ),
+        const SizedBox(width: 16),
+        DropdownButton<StoreSort>(
+          value: sortBy,
+          onChanged: (value) => setState(() => sortBy = value!),
+          items: const [
+            DropdownMenuItem(
+              value: StoreSort.storeNumber,
+              child: Text('Store #'),
+            ),
+            DropdownMenuItem(
+              value: StoreSort.percentChange,
+              child: Text('% Change'),
+            ),
+          ],
+        ),
         const SizedBox(width: 24),
         Row(
           children: [
