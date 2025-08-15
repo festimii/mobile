@@ -3,6 +3,7 @@ package com.vivacrm.crm.controller;
 
 import com.vivacrm.crm.service.DashboardService;
 import com.vivacrm.crm.service.dto.DashboardPayload;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,8 +13,16 @@ public class DashboardController {
     private final DashboardService dashboardService;
     public DashboardController(DashboardService dashboardService) { this.dashboardService = dashboardService; }
 
+    /** Returns cached metrics unless `refresh=true` is provided. */
     @GetMapping("/metrics")
-    public DashboardPayload metrics() {
-        return dashboardService.getMetrics();
+    public DashboardPayload metrics(@RequestParam(name = "refresh", defaultValue = "false") boolean refresh) {
+        return refresh ? dashboardService.refreshMetrics() : dashboardService.getMetrics();
+    }
+
+    /** Manually evict cache (reset). */
+    @PostMapping("/metrics/reset")
+    public ResponseEntity<Void> reset() {
+        dashboardService.resetMetrics();
+        return ResponseEntity.noContent().build();
     }
 }
