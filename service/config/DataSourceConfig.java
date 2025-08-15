@@ -2,6 +2,8 @@
 package com.vivacrm.crm.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.*;
@@ -24,6 +26,8 @@ public class DataSourceConfig {
 
     // SECONDARY -> SQL Server (no JPA)
     @Bean(name = "sqlServerDataSource")
+    @Lazy
+    @ConditionalOnProperty(prefix = "sqlserver.datasource", name = "enabled", havingValue = "true", matchIfMissing = true)
     @ConfigurationProperties("sqlserver.datasource")
     public DataSource sqlServerDataSource() {
         return DataSourceBuilder.create()
@@ -32,6 +36,8 @@ public class DataSourceConfig {
     }
 
     @Bean(name = "sqlServerJdbcTemplate")
+    @Lazy
+    @ConditionalOnProperty(prefix = "sqlserver.datasource", name = "enabled", havingValue = "true", matchIfMissing = true)
     public JdbcTemplate sqlServerJdbcTemplate(@Qualifier("sqlServerDataSource") DataSource ds) {
         JdbcTemplate jt = new JdbcTemplate(ds);
         jt.setResultsMapCaseInsensitive(true);
