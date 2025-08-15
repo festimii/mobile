@@ -3,4 +3,11 @@ package com.vivacrm.crm.service.dto;
 
 import java.math.BigDecimal;
 
-public record StoreCompare(String store, BigDecimal lastYear, BigDecimal thisYear) { }
+/** Store comparison row with raw numerics and preformatted display strings. */
+public record StoreCompare(
+        String store,
+        BigDecimal lastYear,
+        BigDecimal thisYear,
+        String lastYearDisplay,
+        String thisYearDisplay
+) {}

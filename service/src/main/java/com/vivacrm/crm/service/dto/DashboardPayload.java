@@ -8,4 +8,4 @@ public record DashboardPayload(
         List<Point>  dailySeries,
         List<Point>  hourlySeries,
         List<StoreCompare> storeComparison
-) { }
+) {}
