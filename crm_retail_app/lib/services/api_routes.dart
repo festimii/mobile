@@ -1,5 +1,9 @@
 class ApiRoutes {
-  static const baseUrl = 'http://192.168.201.20:8080';
+  /// Base URL for the backend service. Updated to use localhost so the
+  /// Flutter app can communicate with the Spring Boot server running on the
+  /// same machine or emulator.
+  static const baseUrl = 'http://localhost:8080';
+
   static const login = '/auth/login';
   static const logout = '/auth/logout';
   static const register = '/auth/register';

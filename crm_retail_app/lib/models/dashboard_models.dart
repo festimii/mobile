@@ -50,3 +50,21 @@ class StoreSales {
 
   double get percentChange => ((thisYear - lastYear) / lastYear) * 100;
 }
+
+/// Aggregated payload returned from the backend for the dashboard screen.
+///
+/// It contains summary metrics, time series data for daily/hourly sales and
+/// comparative store sales figures.
+class DashboardData {
+  final List<SummaryMetric> metrics;
+  final List<SalesSeries> dailySales;
+  final List<SalesSeries> hourlySales;
+  final List<StoreSales> storeSales;
+
+  DashboardData({
+    required this.metrics,
+    required this.dailySales,
+    required this.hourlySales,
+    required this.storeSales,
+  });
+}

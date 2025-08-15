@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../metric_detail_screen.dart';
 import '../store_detail_screen.dart';
 import '../../../models/dashboard_models.dart';
+import '../../../services/api_service.dart';
 
 class SummaryCard extends StatelessWidget {
   final SummaryMetric metric;
@@ -389,120 +390,69 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
   }
 }
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
   @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  final ApiService _api = ApiService();
+  late Future<DashboardData> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _api.fetchDashboard();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<SummaryMetric> metrics = [
-      SummaryMetric(
-        title: 'Total Revenue',
-        value: '€12,430',
-        icon: Icons.attach_money,
-        color: Colors.green,
-      ),
-      SummaryMetric(
-        title: 'Transactions',
-        value: '845',
-        icon: Icons.shopping_cart_checkout,
-        color: Colors.blue,
-      ),
-      SummaryMetric(
-        title: 'Avg. Basket Size',
-        value: '€14.71',
-        icon: Icons.shopping_bag,
-        color: Colors.indigo,
-      ),
-      SummaryMetric(
-        title: 'Top Product',
-        value: 'Milk 1L',
-        icon: Icons.star,
-        color: Colors.amber,
-      ),
-      SummaryMetric(
-        title: 'Returns Today',
-        value: '12',
-        icon: Icons.undo,
-        color: Colors.redAccent,
-      ),
-      SummaryMetric(
-        title: 'Low Inventory',
-        value: '5 Items',
-        icon: Icons.inventory_2,
-        color: Colors.orange,
-      ),
-    ];
+    return FutureBuilder<DashboardData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Center(child: Text('Error loading dashboard'));
+        }
 
-    final List<SalesSeries> weekSales = [
-      SalesSeries('Mon', 200),
-      SalesSeries('Tue', 350),
-      SalesSeries('Wed', 280),
-      SalesSeries('Thu', 400),
-      SalesSeries('Fri', 500),
-      SalesSeries('Sat', 450),
-      SalesSeries('Sun', 320),
-    ];
+        final data = snapshot.data!;
+        final metrics = data.metrics;
+        final weekSales = data.dailySales;
+        final hourSales = data.hourlySales;
+        final storeSales = data.storeSales;
 
-    final List<SalesSeries> hourSales = List.generate(17, (i) {
-      int hour = 8 + i; // display hours from 8 to 24
-      return SalesSeries('${hour}h', 100 + i * 5);
-    });
+        final double cardWidth =
+            MediaQuery.of(context).size.width > 600
+                ? 260
+                : MediaQuery.of(context).size.width / 2 - 22;
 
-    final List<StoreSales> storeSales = List.generate(120, (i) {
-      return StoreSales(
-        store: 'VFS${i + 1}',
-        lastYear: 10000 + i * 600,
-        thisYear: 12000 + i * 650 - (i % 5 == 0 ? 3000 : 0),
-      );
-    });
-
-    final List<RecentCustomer> customers = [
-      RecentCustomer(
-        name: 'Alice Johnson',
-        totalSpent: 250.50,
-        lastPurchase: '12 Sep',
-      ),
-      RecentCustomer(
-        name: 'Bob Smith',
-        totalSpent: 190.00,
-        lastPurchase: '10 Sep',
-      ),
-      RecentCustomer(
-        name: 'Caroline Lee',
-        totalSpent: 320.10,
-        lastPurchase: '09 Sep',
-      ),
-    ];
-
-    final double cardWidth =
-        MediaQuery.of(context).size.width > 600
-            ? 260
-            : MediaQuery.of(context).size.width / 2 - 22;
-
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        tooltip: 'New Sale',
-        child: const Icon(Icons.add),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Retail KPIs",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children:
-                  metrics
+        return Scaffold(
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {},
+            tooltip: 'New Sale',
+            child: const Icon(Icons.add),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Retail KPIs",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: metrics
                       .map(
                         (metric) => SizedBox(
                           width: cardWidth,
@@ -510,69 +460,53 @@ class HomeTab extends StatelessWidget {
                         ),
                       )
                       .toList(),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  "Weekly Sales Trend",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SalesTrendCard(
+                      weekData: weekSales,
+                      hourData: hourSales,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  "Store Comparison",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: AnimatedStoreSalesTable(salesData: storeSales),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 32),
-            Text(
-              "Weekly Sales Trend",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: SalesTrendCard(weekData: weekSales, hourData: hourSales),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              "Store Sales Comparison",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: StoreSalesTable(salesData: storeSales),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              "Recent Customers",
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children:
-                    customers
-                        .map((c) => RecentCustomerTile(customer: c))
-                        .toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
