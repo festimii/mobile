@@ -21,7 +21,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _kpiFuture = ApiService().fetchStoreKpi(widget.sales.storeId);
+    _kpiFuture =
+        ApiService().fetchStoreKpi(widget.sales.storeId)
+            as Future<StoreKpiDetail?>;
   }
 
   @override
@@ -140,7 +142,11 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 
   // ===== UI helpers =====
 
-  Widget _buildSection(BuildContext context, String title, List<_KpiTile> kpis) {
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<_KpiTile> kpis,
+  ) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
