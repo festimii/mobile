@@ -103,19 +103,42 @@ class ApiService {
             )
             .toList();
 
-    final stores =
-        (data['storeComparison'] as List<dynamic>? ?? [])
-            .map(
-              (e) => StoreSales(
-                storeId: (e['storeId'] as num?)?.toInt(),
-                store: (e['store'] as String).trim(),
-                lastYear: (e['lastYear'] as num?)?.toDouble() ?? 0,
-                thisYear: (e['thisYear'] as num?)?.toDouble() ?? 0,
-                lastYearDisplay: e['lastYearDisplay'] as String?,
-                thisYearDisplay: e['thisYearDisplay'] as String?,
-              ),
-            )
-            .toList();
+// Resolve merge: robust parsing + optional display fields preserved.
+final stores = (data['storeComparison'] as List<dynamic>? ?? const [])
+    .map<StoreSales>((raw) {
+      final e = (raw as Map).cast<String, dynamic>();
+
+      final storeName = (e['store'] as String? ?? '').trim();
+
+      int parseStoreId() {
+        final id = e['storeId'];
+        if (id is num) return id.toInt();
+        if (id is String) {
+          final direct = int.tryParse(id.trim());
+          if (direct != null) return direct;
+        }
+        final m = RegExp(r'\d+').firstMatch(storeName);
+        return m != null ? int.tryParse(m.group(0)!) ?? 0 : 0;
+      }
+
+      double toDouble(dynamic v) {
+        if (v is num) return v.toDouble();
+        if (v is String) return double.tryParse(v.replaceAll(',', '')) ?? 0.0;
+        return 0.0;
+      }
+
+      return StoreSales(
+        storeId: parseStoreId(),
+        store: storeName,
+        lastYear: toDouble(e['lastYear']),
+        thisYear: toDouble(e['thisYear']),
+        // Keep these if your model supports them (optional fields).
+        lastYearDisplay: e['lastYearDisplay'] as String?,
+        thisYearDisplay: e['thisYearDisplay'] as String?,
+      );
+    })
+    .toList();
+
 
     return DashboardData(
       metrics: metrics,

@@ -19,6 +19,7 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/dashboard/metrics").permitAll()
+                        .requestMatchers("/stores/{storeId}/kpi").permitAll()
                         .requestMatchers("/auth/**", "/login").permitAll() // ✅ add /login
                         .anyRequest().authenticated())
                 .httpBasic();
