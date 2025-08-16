@@ -65,55 +65,72 @@ class ApiService {
     }).toList();
   }
 
-  /// Fetches dashboard data including metrics, sales series and store
-  /// comparisons. The backend returns a `DashboardPayload` object which is
-  /// mapped into strongly typed models for the UI layer.
+  /// Fetches dashboard data by combining the individual backend endpoints for
+  /// metrics, sales series and store comparisons. Previously this method
+  /// expected a single "dashboard" payload from `/dashboard/metrics`, but the
+  /// backend exposes each piece of data at its own route. We now retrieve each
+  /// dataset separately and merge the results into a [DashboardData] object so
+  /// the UI can render the information correctly.
   Future<DashboardData> fetchDashboard() async {
-    final res = await http.get(_uri(ApiRoutes.metrics));
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    // Fire off all requests in parallel for efficiency.
+    final responses = await Future.wait([
+      http.get(_uri(ApiRoutes.metrics)),
+      http.get(_uri(ApiRoutes.weeklySales)),
+      http.get(_uri(ApiRoutes.hourlySales)),
+      http.get(_uri(ApiRoutes.storeSales)),
+    ]);
 
-    final metrics =
-        (data['metrics'] as List<dynamic>? ?? []).map((e) {
-          final title = e['title'] as String;
-          return SummaryMetric(
-            title: title,
-            value: e['value'].toString(),
-            icon: _iconForTitle(title),
-            color: _colorForTitle(title),
-          );
-        }).toList();
+    // --- Metrics ---
+    final metricsData =
+        jsonDecode(responses[0].body) as Map<String, dynamic>? ?? {};
+    final metricsJson = metricsData['metrics'] as List<dynamic>? ?? [];
+    final metrics = metricsJson.map((e) {
+      final title = e['title'] as String;
+      return SummaryMetric(
+        title: title,
+        value: e['value'].toString(),
+        icon: _iconForTitle(title),
+        color: _colorForTitle(title),
+      );
+    }).toList();
 
-    final daily =
-        (data['dailySeries'] as List<dynamic>? ?? [])
-            .map(
-              (e) => SalesSeries(
-                e['label'] as String,
-                (e['amount'] as num).toDouble(),
-              ),
-            )
-            .toList();
+    // --- Weekly sales ---
+    final weeklyJson =
+        jsonDecode(responses[1].body) as List<dynamic>? ?? [];
+    final daily = weeklyJson
+        .map(
+          (e) => SalesSeries(
+            e['label'] as String,
+            (e['amount'] as num).toDouble(),
+          ),
+        )
+        .toList();
 
-    final hourly =
-        (data['hourlySeries'] as List<dynamic>? ?? [])
-            .map(
-              (e) => SalesSeries(
-                e['label'] as String,
-                (e['amount'] as num).toDouble(),
-              ),
-            )
-            .toList();
+    // --- Hourly sales ---
+    final hourlyJson =
+        jsonDecode(responses[2].body) as List<dynamic>? ?? [];
+    final hourly = hourlyJson
+        .map(
+          (e) => SalesSeries(
+            e['label'] as String,
+            (e['amount'] as num).toDouble(),
+          ),
+        )
+        .toList();
 
-    final stores =
-        (data['storeComparison'] as List<dynamic>? ?? [])
-            .map(
-              (e) => StoreSales(
-                storeId: e['storeId'] as int,
-                store: (e['store'] as String).trim(),
-                lastYear: (e['lastYear'] as num).toDouble(),
-                thisYear: (e['thisYear'] as num).toDouble(),
-              ),
-            )
-            .toList();
+    // --- Store comparison ---
+    final storesJson =
+        jsonDecode(responses[3].body) as List<dynamic>? ?? [];
+    final stores = storesJson
+        .map(
+          (e) => StoreSales(
+            storeId: e['storeId'] as int,
+            store: (e['store'] as String).trim(),
+            lastYear: (e['lastYear'] as num).toDouble(),
+            thisYear: (e['thisYear'] as num).toDouble(),
+          ),
+        )
+        .toList();
 
     return DashboardData(
       metrics: metrics,
