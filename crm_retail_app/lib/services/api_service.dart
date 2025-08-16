@@ -119,6 +119,13 @@ class ApiService {
     );
   }
 
+  Future<StoreKpiDetail?> fetchStoreKpi(int storeId) async {
+    final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
+    if (res.statusCode != 200) return null;
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return StoreKpiDetail.fromJson(data);
+  }
+
   IconData _iconForTitle(String title) {
     switch (title) {
       case 'Total Revenue':

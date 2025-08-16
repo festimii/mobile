@@ -1,99 +1,146 @@
 import 'package:flutter/material.dart';
 import '../../models/dashboard_models.dart';
+import '../../services/api_service.dart';
 
-class StoreDetailScreen extends StatelessWidget {
-  final StoreKpiMetrics metrics;
+/// Store detail screen
+/// - Accepts a `StoreSales` item (has store name and id)
+/// - Fetches KPIs from backend
+/// - Displays organized KPI sections with derived metrics (%, diffs)
+class StoreDetailScreen extends StatefulWidget {
+  final StoreSales sales;
 
-  const StoreDetailScreen({super.key, required this.metrics});
+  const StoreDetailScreen({super.key, required this.sales});
+
+  @override
+  State<StoreDetailScreen> createState() => _StoreDetailScreenState();
+}
+
+class _StoreDetailScreenState extends State<StoreDetailScreen> {
+  late final Future<StoreKpiDetail?> _kpiFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _kpiFuture = ApiService().fetchStoreKpi(widget.sales.storeId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final List<StoreKpi> salesKpis = [
-      StoreKpi('Revenue Today', '€${metrics.revenueToday.toStringAsFixed(2)}',
-          Icons.today),
-      StoreKpi('Revenue PY', '€${metrics.revenuePy.toStringAsFixed(2)}',
-          Icons.calendar_today),
-      StoreKpi(
-        'Revenue %',
-        '${metrics.revenuePct.toStringAsFixed(1)}%',
-        metrics.revenuePct >= 0
-            ? Icons.arrow_upward
-            : metrics.revenuePct < 0
-                ? Icons.arrow_downward
-                : Icons.remove,
-      ),
-      StoreKpi('Avg Basket',
-          '€${metrics.avgBasketToday.toStringAsFixed(2)}', Icons.shopping_basket),
-    ];
-
-    final List<StoreKpi> customerKpis = [
-      StoreKpi('Tx Today', metrics.txToday.toString(), Icons.receipt_long),
-      StoreKpi('Tx PY', metrics.txPy.toString(), Icons.history),
-      StoreKpi(
-        'Tx %',
-        '${metrics.txPct.toStringAsFixed(1)}%',
-        metrics.txPct >= 0
-            ? Icons.arrow_upward
-            : metrics.txPct < 0
-                ? Icons.arrow_downward
-                : Icons.remove,
-      ),
-      StoreKpi('Avg Basket PY',
-          '€${metrics.avgBasketPy.toStringAsFixed(2)}', Icons.shopping_basket_outlined),
-    ];
-
-    final List<StoreKpi> inventoryKpis = [
-      StoreKpi(
-        'Avg Basket Diff',
-        '€${metrics.avgBasketDiff.toStringAsFixed(2)}',
-        metrics.avgBasketDiff >= 0
-            ? Icons.trending_up
-            : Icons.trending_down,
-      ),
-      StoreKpi('Top Product Code', metrics.topArtCode, Icons.qr_code),
-      StoreKpi('Top Product Rev',
-          '€${metrics.topArtRevenue.toStringAsFixed(2)}', Icons.monetization_on),
-      StoreKpi('Top Product', metrics.topArtName, Icons.star),
-    ];
-
-    final List<StoreKpi> opsKpis = [
-      StoreKpi('Revenue Diff',
-          '€${metrics.revenueDiff.toStringAsFixed(2)}',
-          metrics.revenueDiff >= 0
-              ? Icons.arrow_upward
-              : metrics.revenueDiff < 0
-                  ? Icons.arrow_downward
-                  : Icons.remove),
-      StoreKpi('Tx Diff', metrics.txDiff.toString(),
-          metrics.txDiff >= 0 ? Icons.arrow_upward : Icons.arrow_downward),
-      StoreKpi('Peak Hour', metrics.peakHourLabel, Icons.access_time),
-      StoreKpi('Peak Hour Rev',
-          '€${metrics.peakHourRevenue.toStringAsFixed(2)}', Icons.bar_chart),
-    ];
-
     return Scaffold(
-      appBar: AppBar(title: Text(metrics.storeName)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            _buildSection(context, '📊 Sales KPIs', salesKpis),
-            _buildSection(context, '🛍️ Customer Behavior', customerKpis),
-            _buildSection(context, '📦 Inventory KPIs', inventoryKpis),
-            _buildSection(context, '🧮 Operational Metrics', opsKpis),
-          ],
-        ),
+      appBar: AppBar(title: Text(widget.sales.store)),
+      body: FutureBuilder<StoreKpiDetail?>(
+        future: _kpiFuture,
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snap.hasData || snap.data == null) {
+            return const Center(child: Text('No data'));
+          }
+
+          final data = snap.data!;
+
+          // ===== Derived metrics (safe guards for division by zero) =====
+          double _pct(double cur, double py) {
+            if (py == 0) return cur == 0 ? 0 : 100;
+            return ((cur - py) / py) * 100.0;
+          }
+
+          final revenuePct = _pct(data.revenueToday, data.revenuePY);
+          final txPct = _pct(data.txToday.toDouble(), data.txPY.toDouble());
+          final revenueDiff = data.revenueToday - data.revenuePY;
+          final txDiff = data.txToday - data.txPY;
+          final avgBasketDiff = data.avgBasketToday - data.avgBasketPY;
+
+          // ===== KPI groups =====
+          final salesKpis = <_KpiTile>[
+            _KpiTile('Revenue Today', _eur(data.revenueToday), Icons.today),
+            _KpiTile('Revenue PY', _eur(data.revenuePY), Icons.calendar_today),
+            _KpiTile(
+              'Revenue %',
+              '${revenuePct.toStringAsFixed(1)}%',
+              revenuePct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+            ),
+            _KpiTile(
+              'Revenue Δ',
+              _eur(revenueDiff),
+              revenueDiff >= 0 ? Icons.trending_up : Icons.trending_down,
+            ),
+          ];
+
+          final customerKpis = <_KpiTile>[
+            _KpiTile('Tx Today', '${data.txToday}', Icons.receipt_long),
+            _KpiTile('Tx PY', '${data.txPY}', Icons.history),
+            _KpiTile(
+              'Tx %',
+              '${txPct.toStringAsFixed(1)}%',
+              txPct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+            ),
+            _KpiTile(
+              'Avg Basket Today',
+              _eur(data.avgBasketToday),
+              Icons.shopping_basket,
+            ),
+            _KpiTile(
+              'Avg Basket PY',
+              _eur(data.avgBasketPY),
+              Icons.shopping_basket_outlined,
+            ),
+            _KpiTile(
+              'Avg Basket Δ',
+              _eur(avgBasketDiff),
+              avgBasketDiff >= 0 ? Icons.trending_up : Icons.trending_down,
+            ),
+          ];
+
+          final inventoryKpis = <_KpiTile>[
+            if ((data.topArtCode ?? '').isNotEmpty)
+              _KpiTile('Top Product Code', data.topArtCode!, Icons.qr_code),
+            if ((data.topArtName ?? '').isNotEmpty)
+              _KpiTile('Top Product', data.topArtName!, Icons.star),
+            if (data.topArtRevenue != null)
+              _KpiTile(
+                'Top Product Rev',
+                _eur(data.topArtRevenue!),
+                Icons.monetization_on,
+              ),
+          ];
+
+          final opsKpis = <_KpiTile>[
+            _KpiTile('Peak Hour', data.peakHourLabel, Icons.access_time),
+            if (data.peakHourRevenue != null)
+              _KpiTile(
+                'Peak Hour Rev',
+                _eur(data.peakHourRevenue!),
+                Icons.bar_chart,
+              ),
+            _KpiTile(
+              'Tx Δ',
+              txDiff.toString(),
+              txDiff >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+            ),
+          ];
+
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListView(
+              children: [
+                _buildSection(context, '📊 Sales KPIs', salesKpis),
+                _buildSection(context, '🛍️ Customer Behavior', customerKpis),
+                if (inventoryKpis.isNotEmpty)
+                  _buildSection(context, '📦 Inventory KPIs', inventoryKpis),
+                _buildSection(context, '🧮 Operational Metrics', opsKpis),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSection(
-    BuildContext context,
-    String title,
-    List<StoreKpi> kpis,
-  ) {
+  // ===== UI helpers =====
+
+  Widget _buildSection(BuildContext context, String title, List<_KpiTile> kpis) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,39 +160,7 @@ class StoreDetailScreen extends StatelessWidget {
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 1.2,
-          children:
-              kpis.map((kpi) {
-                return Card(
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(kpi.icon, color: theme.primaryColor, size: 28),
-                        const SizedBox(height: 10),
-                        Text(
-                          kpi.title,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          kpi.value,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+          children: kpis.map((kpi) => _KpiCard(kpi: kpi)).toList(),
         ),
         const SizedBox(height: 28),
       ],
@@ -153,10 +168,53 @@ class StoreDetailScreen extends StatelessWidget {
   }
 }
 
-class StoreKpi {
+// ===== Small value objects / widgets =====
+
+class _KpiTile {
   final String title;
   final String value;
   final IconData icon;
 
-  StoreKpi(this.title, this.value, this.icon);
+  const _KpiTile(this.title, this.value, this.icon);
 }
+
+class _KpiCard extends StatelessWidget {
+  final _KpiTile kpi;
+  const _KpiCard({required this.kpi});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(kpi.icon, color: theme.primaryColor, size: 28),
+            const SizedBox(height: 10),
+            Text(
+              kpi.title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              kpi.value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===== Formatting =====
+String _eur(num v) => '€${v.toStringAsFixed(2)}';
