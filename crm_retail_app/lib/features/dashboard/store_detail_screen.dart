@@ -3,8 +3,8 @@ import '../../models/dashboard_models.dart';
 import '../../services/api_service.dart';
 
 /// Store detail screen
-/// - Accepts a `StoreSales` item (has store name and id)
-/// - Fetches KPIs from backend
+/// - Accepts a `StoreSales` item (may or may not include an id)
+/// - Fetches KPIs from backend when an id is available
 /// - Displays organized KPI sections with derived metrics (%, diffs)
 class StoreDetailScreen extends StatefulWidget {
   final StoreSales sales;
@@ -21,7 +21,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _kpiFuture = ApiService().fetchStoreKpi(widget.sales.storeId);
+    _kpiFuture = (widget.sales.storeId != null)
+        ? ApiService().fetchStoreKpi(widget.sales.storeId!)
+        : Future.value(null);
   }
 
   @override

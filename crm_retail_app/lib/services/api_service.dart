@@ -107,10 +107,12 @@ class ApiService {
         (data['storeComparison'] as List<dynamic>? ?? [])
             .map(
               (e) => StoreSales(
-                storeId: e['storeId'] as int,
+                storeId: (e['storeId'] as num?)?.toInt(),
                 store: (e['store'] as String).trim(),
-                lastYear: (e['lastYear'] as num).toDouble(),
-                thisYear: (e['thisYear'] as num).toDouble(),
+                lastYear: (e['lastYear'] as num?)?.toDouble() ?? 0,
+                thisYear: (e['thisYear'] as num?)?.toDouble() ?? 0,
+                lastYearDisplay: e['lastYearDisplay'] as String?,
+                thisYearDisplay: e['thisYearDisplay'] as String?,
               ),
             )
             .toList();
@@ -176,10 +178,12 @@ class ApiService {
     return data
         .map(
           (e) => StoreSales(
-            storeId: e['storeId'] as int,
+            storeId: (e['storeId'] as num?)?.toInt(),
             store: (e['store'] as String).trim(),
-            lastYear: (e['lastYear'] as num).toDouble(),
-            thisYear: (e['thisYear'] as num).toDouble(),
+            lastYear: (e['lastYear'] as num?)?.toDouble() ?? 0,
+            thisYear: (e['thisYear'] as num?)?.toDouble() ?? 0,
+            lastYearDisplay: e['lastYearDisplay'] as String?,
+            thisYearDisplay: e['thisYearDisplay'] as String?,
           ),
         )
         .toList();
@@ -187,7 +191,7 @@ class ApiService {
 
   /// Fetches detailed KPI metrics for a single store.
   Future<StoreKpiMetrics> fetchStoreKpi(int storeId) async {
-    final res = await http.get(_uri('${ApiRoutes.storeKpi}/$storeId'));
+    final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiMetrics.fromJson(data);
   }
