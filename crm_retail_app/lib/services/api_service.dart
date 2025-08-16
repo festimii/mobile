@@ -103,6 +103,7 @@ class ApiService {
     final stores = (data['storeComparison'] as List<dynamic>? ?? [])
         .map(
           (e) => StoreSales(
+            storeId: e['storeId'] as int,
             store: (e['store'] as String).trim(),
             lastYear: (e['lastYear'] as num).toDouble(),
             thisYear: (e['thisYear'] as num).toDouble(),
@@ -164,12 +165,20 @@ class ApiService {
     return data
         .map(
           (e) => StoreSales(
+            storeId: e['storeId'] as int,
             store: (e['store'] as String).trim(),
             lastYear: (e['lastYear'] as num).toDouble(),
             thisYear: (e['thisYear'] as num).toDouble(),
           ),
         )
         .toList();
+  }
+
+  /// Fetches detailed KPI metrics for a single store.
+  Future<StoreKpiMetrics> fetchStoreKpi(int storeId) async {
+    final res = await http.get(_uri('${ApiRoutes.storeKpi}/$storeId'));
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return StoreKpiMetrics.fromJson(data);
   }
 
   /// Returns whether OTP is enabled for the user.
