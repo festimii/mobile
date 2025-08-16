@@ -2,60 +2,79 @@ import 'package:flutter/material.dart';
 import '../../models/dashboard_models.dart';
 
 class StoreDetailScreen extends StatelessWidget {
-  final StoreSales sales;
+  final StoreKpiMetrics metrics;
 
-  const StoreDetailScreen({super.key, required this.sales});
+  const StoreDetailScreen({super.key, required this.metrics});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     final List<StoreKpi> salesKpis = [
+      StoreKpi('Revenue Today', '€${metrics.revenueToday.toStringAsFixed(2)}',
+          Icons.today),
+      StoreKpi('Revenue PY', '€${metrics.revenuePy.toStringAsFixed(2)}',
+          Icons.calendar_today),
       StoreKpi(
-        'Last Year',
-        '€${sales.lastYear.toStringAsFixed(2)}',
-        Icons.calendar_today,
-      ),
-      StoreKpi(
-        'This Year',
-        '€${sales.thisYear.toStringAsFixed(2)}',
-        Icons.today,
-      ),
-      StoreKpi(
-        'Change',
-        '${sales.percentChange.toStringAsFixed(1)}%',
-        sales.percentChange > 0
+        'Revenue %',
+        '${metrics.revenuePct.toStringAsFixed(1)}%',
+        metrics.revenuePct >= 0
             ? Icons.arrow_upward
-            : sales.percentChange < 0
-            ? Icons.arrow_downward
-            : Icons.remove,
+            : metrics.revenuePct < 0
+                ? Icons.arrow_downward
+                : Icons.remove,
       ),
-      StoreKpi('Revenue/Tx', '€14.20', Icons.calculate),
+      StoreKpi('Avg Basket',
+          '€${metrics.avgBasketToday.toStringAsFixed(2)}', Icons.shopping_basket),
     ];
 
     final List<StoreKpi> customerKpis = [
-      StoreKpi('Customers Today', '120', Icons.people),
-      StoreKpi('Repeat Rate', '36%', Icons.replay),
-      StoreKpi('Conversion Rate', '61%', Icons.show_chart),
-      StoreKpi('Avg Time Spent', '8m 20s', Icons.timer),
+      StoreKpi('Tx Today', metrics.txToday.toString(), Icons.receipt_long),
+      StoreKpi('Tx PY', metrics.txPy.toString(), Icons.history),
+      StoreKpi(
+        'Tx %',
+        '${metrics.txPct.toStringAsFixed(1)}%',
+        metrics.txPct >= 0
+            ? Icons.arrow_upward
+            : metrics.txPct < 0
+                ? Icons.arrow_downward
+                : Icons.remove,
+      ),
+      StoreKpi('Avg Basket PY',
+          '€${metrics.avgBasketPy.toStringAsFixed(2)}', Icons.shopping_basket_outlined),
     ];
 
     final List<StoreKpi> inventoryKpis = [
-      StoreKpi('Low Stock Items', '4', Icons.inventory_2),
-      StoreKpi('Top Product', 'Milk 1L', Icons.star),
-      StoreKpi('Restock Time', '3d avg', Icons.timelapse),
-      StoreKpi('Stock Value', '€2,300', Icons.monetization_on),
+      StoreKpi(
+        'Avg Basket Diff',
+        '€${metrics.avgBasketDiff.toStringAsFixed(2)}',
+        metrics.avgBasketDiff >= 0
+            ? Icons.trending_up
+            : Icons.trending_down,
+      ),
+      StoreKpi('Top Product Code', metrics.topArtCode, Icons.qr_code),
+      StoreKpi('Top Product Rev',
+          '€${metrics.topArtRevenue.toStringAsFixed(2)}', Icons.monetization_on),
+      StoreKpi('Top Product', metrics.topArtName, Icons.star),
     ];
 
     final List<StoreKpi> opsKpis = [
-      StoreKpi('Transactions', '85', Icons.receipt_long),
-      StoreKpi('Avg Basket', '€14.20', Icons.shopping_basket),
-      StoreKpi('Peak Hour', '13:00', Icons.access_time),
-      StoreKpi('Refunds Today', '6', Icons.undo),
+      StoreKpi('Revenue Diff',
+          '€${metrics.revenueDiff.toStringAsFixed(2)}',
+          metrics.revenueDiff >= 0
+              ? Icons.arrow_upward
+              : metrics.revenueDiff < 0
+                  ? Icons.arrow_downward
+                  : Icons.remove),
+      StoreKpi('Tx Diff', metrics.txDiff.toString(),
+          metrics.txDiff >= 0 ? Icons.arrow_upward : Icons.arrow_downward),
+      StoreKpi('Peak Hour', metrics.peakHourLabel, Icons.access_time),
+      StoreKpi('Peak Hour Rev',
+          '€${metrics.peakHourRevenue.toStringAsFixed(2)}', Icons.bar_chart),
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(sales.store)),
+      appBar: AppBar(title: Text(metrics.storeName)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

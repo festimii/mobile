@@ -205,10 +205,13 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
     super.dispose();
   }
 
-  void _showStoreDetails(StoreSales sales) {
+  Future<void> _showStoreDetails(StoreSales sales) async {
+    final api = ApiService();
+    final metrics = await api.fetchStoreKpi(sales.storeId);
+    if (!mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: sales)),
+      MaterialPageRoute(builder: (_) => StoreDetailScreen(metrics: metrics)),
     );
   }
 
@@ -541,10 +544,13 @@ class AnimatedStoreSalesTable extends StatelessWidget {
 
   const AnimatedStoreSalesTable({super.key, required this.salesData});
 
-  void _showStoreDetails(BuildContext context, StoreSales sale) {
+  Future<void> _showStoreDetails(BuildContext context, StoreSales sale) async {
+    final api = ApiService();
+    final metrics = await api.fetchStoreKpi(sale.storeId);
+    if (!context.mounted) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: sale)),
+      MaterialPageRoute(builder: (_) => StoreDetailScreen(metrics: metrics)),
     );
   }
 
