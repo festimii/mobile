@@ -67,8 +67,6 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
-
-
 class SalesBarChart extends StatelessWidget {
   final List<SalesSeries> data;
 
@@ -213,28 +211,32 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
   }
 
   List<StoreSales> get filteredSortedData {
-    final filtered = widget.salesData.where((s) {
-      switch (filter) {
-        case StoreFilter.positive:
-          return s.percentChange > 0;
-        case StoreFilter.negative:
-          return s.percentChange < 0;
-        default:
-          return true;
-      }
-    }).toList();
+    final filtered =
+        widget.salesData.where((s) {
+          switch (filter) {
+            case StoreFilter.positive:
+              return s.percentChange > 0;
+            case StoreFilter.negative:
+              return s.percentChange < 0;
+            default:
+              return true;
+          }
+        }).toList();
 
     if (_searchCtrl.text.isNotEmpty) {
       final query = _searchCtrl.text.trim().toLowerCase();
-      filtered.retainWhere(
-          (s) => s.store.toLowerCase().trim().contains(query));
+      filtered.retainWhere((s) => s.store.toLowerCase().trim().contains(query));
     }
 
     filtered.sort((a, b) {
       int comparison;
       if (sortBy == StoreSort.storeNumber) {
-        final aNum = int.tryParse(RegExp(r'\d+').firstMatch(a.store)?.group(0) ?? '') ?? 0;
-        final bNum = int.tryParse(RegExp(r'\d+').firstMatch(b.store)?.group(0) ?? '') ?? 0;
+        final aNum =
+            int.tryParse(RegExp(r'\d+').firstMatch(a.store)?.group(0) ?? '') ??
+            0;
+        final bNum =
+            int.tryParse(RegExp(r'\d+').firstMatch(b.store)?.group(0) ?? '') ??
+            0;
         comparison = aNum.compareTo(bNum);
       } else {
         comparison = a.percentChange.compareTo(b.percentChange);
@@ -265,52 +267,52 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
                   value: StoreFilter.positive,
                   child: Text("Positive"),
                 ),
-              DropdownMenuItem(
-                value: StoreFilter.negative,
-                child: Text("Negative"),
-              ),
-            ],
+                DropdownMenuItem(
+                  value: StoreFilter.negative,
+                  child: Text("Negative"),
+                ),
+              ],
             ),
-        const SizedBox(width: 16),
-        DropdownButton<StoreSort>(
-          value: sortBy,
-          onChanged: (value) => setState(() => sortBy = value!),
-          items: const [
-            DropdownMenuItem(
-              value: StoreSort.storeNumber,
-              child: Text('Store #'),
+            const SizedBox(width: 16),
+            DropdownButton<StoreSort>(
+              value: sortBy,
+              onChanged: (value) => setState(() => sortBy = value!),
+              items: const [
+                DropdownMenuItem(
+                  value: StoreSort.storeNumber,
+                  child: Text('Store #'),
+                ),
+                DropdownMenuItem(
+                  value: StoreSort.percentChange,
+                  child: Text('% Change'),
+                ),
+              ],
             ),
-            DropdownMenuItem(
-              value: StoreSort.percentChange,
-              child: Text('% Change'),
+            const SizedBox(width: 24),
+            Row(
+              children: [
+                const Text("Ascending"),
+                Switch(
+                  value: sortAscending,
+                  onChanged: (val) => setState(() => sortAscending = val),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(width: 24),
-        Row(
-          children: [
-            const Text("Ascending"),
-            Switch(
-              value: sortAscending,
-              onChanged: (val) => setState(() => sortAscending = val),
-            ),
-          ],
+        const SizedBox(height: 12),
+        TextField(
+          controller: _searchCtrl,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search),
+            hintText: 'Search stores',
+          ),
+          onChanged: (_) => setState(() {}),
         ),
-      ],
-    ),
-    const SizedBox(height: 12),
-    TextField(
-      controller: _searchCtrl,
-      decoration: const InputDecoration(
-        prefixIcon: Icon(Icons.search),
-        hintText: 'Search stores',
-      ),
-      onChanged: (_) => setState(() {}),
-    ),
-    const SizedBox(height: 12),
-    ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: filteredSortedData.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
@@ -467,30 +469,31 @@ class _HomeTabState extends State<HomeTab> {
                 Text(
                   "Retail KPIs",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: metrics
-                      .map(
-                        (metric) => SizedBox(
-                          width: cardWidth,
-                          child: SummaryCard(metric: metric),
-                        ),
-                      )
-                      .toList(),
+                  children:
+                      metrics
+                          .map(
+                            (metric) => SizedBox(
+                              width: cardWidth,
+                              child: SummaryCard(metric: metric),
+                            ),
+                          )
+                          .toList(),
                 ),
                 const SizedBox(height: 32),
                 Text(
                   "Weekly Sales Trend",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Card(
@@ -510,9 +513,9 @@ class _HomeTabState extends State<HomeTab> {
                 Text(
                   "Store Comparison",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Card(
@@ -522,7 +525,9 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: AnimatedStoreSalesTable(salesData: storeSales),
+                    child: FilterableAnimatedStoreSalesTable(
+                      salesData: storeSales,
+                    ),
                   ),
                 ),
               ],
@@ -533,124 +538,255 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 }
-// Replace StoreSalesTable with AnimatedStoreSalesTable
-// Place this at the end of your file or in a separate widget file if preferred
 
-class AnimatedStoreSalesTable extends StatelessWidget {
+// ===== Filterable store list with UI filters =====
+class FilterableAnimatedStoreSalesTable extends StatefulWidget {
   final List<StoreSales> salesData;
+  const FilterableAnimatedStoreSalesTable({super.key, required this.salesData});
 
-  const AnimatedStoreSalesTable({super.key, required this.salesData});
+  @override
+  State<FilterableAnimatedStoreSalesTable> createState() =>
+      _FilterableAnimatedStoreSalesTableState();
+}
 
-  void _showStoreDetails(BuildContext context, StoreSales sale) {
+class _FilterableAnimatedStoreSalesTableState
+    extends State<FilterableAnimatedStoreSalesTable> {
+  final TextEditingController _searchCtrl = TextEditingController();
+
+  StoreFilter _filter = StoreFilter.all;
+  StoreSort _sortBy = StoreSort.storeNumber;
+  bool _ascending = true;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<StoreSales> _applyFilters() {
+    final filtered =
+        widget.salesData.where((s) {
+          switch (_filter) {
+            case StoreFilter.positive:
+              return s.percentChange > 0;
+            case StoreFilter.negative:
+              return s.percentChange < 0;
+            case StoreFilter.all:
+            default:
+              return true;
+          }
+        }).toList();
+
+    final q = _searchCtrl.text.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      filtered.retainWhere((s) => s.store.toLowerCase().contains(q));
+    }
+
+    int storeNum(String name) {
+      final m = RegExp(r'\d+').firstMatch(name);
+      return m != null ? int.tryParse(m.group(0)!) ?? 0 : 0;
+    }
+
+    filtered.sort((a, b) {
+      int cmp =
+          (_sortBy == StoreSort.storeNumber)
+              ? storeNum(a.store).compareTo(storeNum(b.store))
+              : a.percentChange.compareTo(b.percentChange);
+      return _ascending ? cmp : -cmp;
+    });
+
+    return filtered;
+  }
+
+  void _reset() {
+    setState(() {
+      _filter = StoreFilter.all;
+      _sortBy = StoreSort.storeNumber;
+      _ascending = true;
+      _searchCtrl.clear();
+    });
+  }
+
+  void _open(StoreSales s) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: sale)),
+      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: s)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final sorted = List<StoreSales>.from(salesData)
-      ..sort((a, b) => b.percentChange.compareTo(a.percentChange));
+    final theme = Theme.of(context);
+    final data = _applyFilters();
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      itemCount: sorted.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final sale = sorted[index];
-        final pct = sale.percentChange;
-        final isPositive = pct > 0;
-        final isNegative = pct < 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            DropdownButton<StoreFilter>(
+              value: _filter,
+              onChanged: (v) => setState(() => _filter = v!),
+              items: const [
+                DropdownMenuItem(
+                  value: StoreFilter.all,
+                  child: Text('All Stores'),
+                ),
+                DropdownMenuItem(
+                  value: StoreFilter.positive,
+                  child: Text('Positive'),
+                ),
+                DropdownMenuItem(
+                  value: StoreFilter.negative,
+                  child: Text('Negative'),
+                ),
+              ],
+            ),
+            DropdownButton<StoreSort>(
+              value: _sortBy,
+              onChanged: (v) => setState(() => _sortBy = v!),
+              items: const [
+                DropdownMenuItem(
+                  value: StoreSort.storeNumber,
+                  child: Text('Store #'),
+                ),
+                DropdownMenuItem(
+                  value: StoreSort.percentChange,
+                  child: Text('% Change'),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Ascending'),
+                Switch(
+                  value: _ascending,
+                  onChanged: (v) => setState(() => _ascending = v),
+                ),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: _reset,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reset'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _searchCtrl,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search),
+            hintText: 'Search stores',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 12),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: data.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final s = data[index];
+            final pct = s.percentChange;
+            final isPos = pct > 0, isNeg = pct < 0;
 
-        final bgColor =
-            isPositive
-                ? Colors.green.withOpacity(0.06)
-                : isNegative
-                ? Colors.red.withOpacity(0.06)
-                : Colors.grey.withOpacity(0.03);
+            final bg =
+                isPos
+                    ? Colors.green.withOpacity(0.06)
+                    : isNeg
+                    ? Colors.red.withOpacity(0.06)
+                    : Colors.grey.withOpacity(0.03);
 
-        final pctColor =
-            isPositive
-                ? Colors.green
-                : isNegative
-                ? Colors.red
-                : Colors.grey;
+            final pctColor =
+                isPos
+                    ? Colors.green
+                    : isNeg
+                    ? Colors.red
+                    : Colors.grey;
 
-        return TweenAnimationBuilder<Color?>(
-          tween: ColorTween(begin: Colors.white, end: bgColor),
-          duration: const Duration(milliseconds: 600),
-          builder: (_, color, __) {
-            return Material(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onTap: () => _showStoreDetails(context, sale),
-                borderRadius: BorderRadius.circular(12),
-                splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 16,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.storefront,
-                        size: 28,
-                        color: Theme.of(context).primaryColor,
+            return TweenAnimationBuilder<Color?>(
+              tween: ColorTween(begin: Colors.white, end: bg),
+              duration: const Duration(milliseconds: 500),
+              builder: (_, color, __) {
+                return Material(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: () => _open(s),
+                    borderRadius: BorderRadius.circular(12),
+                    splashColor: theme.primaryColor.withOpacity(0.1),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              sale.store,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '€${sale.thisYear.toStringAsFixed(2)}',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Row(
+                      child: Row(
                         children: [
                           Icon(
-                            isPositive
-                                ? Icons.arrow_upward
-                                : isNegative
-                                ? Icons.arrow_downward
-                                : Icons.remove,
-                            size: 18,
-                            color: pctColor,
+                            Icons.storefront,
+                            size: 28,
+                            color: theme.primaryColor,
                           ),
-                          const SizedBox(width: 4),
-                          AnimatedDefaultTextStyle(
-                            duration: const Duration(milliseconds: 300),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: pctColor,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  s.store,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '€${s.thisYear.toStringAsFixed(2)}',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
                             ),
-                            child: Text('${pct.toStringAsFixed(1)}%'),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                isPos
+                                    ? Icons.arrow_upward
+                                    : isNeg
+                                    ? Icons.arrow_downward
+                                    : Icons.remove,
+                                size: 18,
+                                color: pctColor,
+                              ),
+                              const SizedBox(width: 4),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 300),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: pctColor,
+                                ),
+                                child: Text('${pct.toStringAsFixed(1)}%'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
-        );
-      },
+        ),
+      ],
     );
   }
 }
