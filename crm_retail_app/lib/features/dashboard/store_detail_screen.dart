@@ -1,71 +1,63 @@
 import 'package:flutter/material.dart';
 import '../../models/dashboard_models.dart';
+import '../../services/api_service.dart';
 
-class StoreDetailScreen extends StatelessWidget {
+class StoreDetailScreen extends StatefulWidget {
   final StoreSales sales;
 
   const StoreDetailScreen({super.key, required this.sales});
 
   @override
+  State<StoreDetailScreen> createState() => _StoreDetailScreenState();
+}
+
+class _StoreDetailScreenState extends State<StoreDetailScreen> {
+  late Future<StoreKpiDetail?> _kpiFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = int.tryParse(
+            RegExp(r'\d+').firstMatch(widget.sales.store)?.group(0) ?? '0') ??
+        0;
+    _kpiFuture = ApiService().fetchStoreKpi(id);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    final List<StoreKpi> salesKpis = [
-      StoreKpi(
-        'Last Year',
-        '€${sales.lastYear.toStringAsFixed(2)}',
-        Icons.calendar_today,
-      ),
-      StoreKpi(
-        'This Year',
-        '€${sales.thisYear.toStringAsFixed(2)}',
-        Icons.today,
-      ),
-      StoreKpi(
-        'Change',
-        '${sales.percentChange.toStringAsFixed(1)}%',
-        sales.percentChange > 0
-            ? Icons.arrow_upward
-            : sales.percentChange < 0
-            ? Icons.arrow_downward
-            : Icons.remove,
-      ),
-      StoreKpi('Revenue/Tx', '€14.20', Icons.calculate),
-    ];
-
-    final List<StoreKpi> customerKpis = [
-      StoreKpi('Customers Today', '120', Icons.people),
-      StoreKpi('Repeat Rate', '36%', Icons.replay),
-      StoreKpi('Conversion Rate', '61%', Icons.show_chart),
-      StoreKpi('Avg Time Spent', '8m 20s', Icons.timer),
-    ];
-
-    final List<StoreKpi> inventoryKpis = [
-      StoreKpi('Low Stock Items', '4', Icons.inventory_2),
-      StoreKpi('Top Product', 'Milk 1L', Icons.star),
-      StoreKpi('Restock Time', '3d avg', Icons.timelapse),
-      StoreKpi('Stock Value', '€2,300', Icons.monetization_on),
-    ];
-
-    final List<StoreKpi> opsKpis = [
-      StoreKpi('Transactions', '85', Icons.receipt_long),
-      StoreKpi('Avg Basket', '€14.20', Icons.shopping_basket),
-      StoreKpi('Peak Hour', '13:00', Icons.access_time),
-      StoreKpi('Refunds Today', '6', Icons.undo),
-    ];
-
     return Scaffold(
-      appBar: AppBar(title: Text(sales.store)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            _buildSection(context, '📊 Sales KPIs', salesKpis),
-            _buildSection(context, '🛍️ Customer Behavior', customerKpis),
-            _buildSection(context, '📦 Inventory KPIs', inventoryKpis),
-            _buildSection(context, '🧮 Operational Metrics', opsKpis),
-          ],
-        ),
+      appBar: AppBar(title: Text(widget.sales.store)),
+      body: FutureBuilder<StoreKpiDetail?>(
+        future: _kpiFuture,
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snap.hasData || snap.data == null) {
+            return const Center(child: Text('No data'));
+          }
+          final data = snap.data!;
+          final kpis = [
+            StoreKpi('Revenue Today',
+                '€${data.revenueToday.toStringAsFixed(2)}', Icons.attach_money),
+            StoreKpi('Revenue PY',
+                '€${data.revenuePY.toStringAsFixed(2)}', Icons.history),
+            StoreKpi('Tx Today', '${data.txToday}', Icons.receipt_long),
+            StoreKpi('Tx PY', '${data.txPY}', Icons.history_toggle_off),
+            StoreKpi('Avg Basket',
+                '€${data.avgBasketToday.toStringAsFixed(2)}',
+                Icons.shopping_basket),
+            StoreKpi('Avg Basket PY',
+                '€${data.avgBasketPY.toStringAsFixed(2)}',
+                Icons.shopping_basket_outlined),
+            StoreKpi('Peak Hour', data.peakHourLabel, Icons.access_time),
+            StoreKpi('Top Article', data.topArtName, Icons.star),
+          ];
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: _buildSection(context, 'Store KPIs', kpis),
+          );
+        },
       ),
     );
   }
