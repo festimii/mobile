@@ -54,17 +54,15 @@ class ApiService {
     final res = await http.get(_uri(ApiRoutes.metrics));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final metricsJson = data['metrics'] as List<dynamic>? ?? [];
-    return metricsJson
-        .map((e) {
-          final title = e['title'] as String;
-          return SummaryMetric(
-            title: title,
-            value: e['value'].toString(),
-            icon: _iconForTitle(title),
-            color: _colorForTitle(title),
-          );
-        })
-        .toList();
+    return metricsJson.map((e) {
+      final title = e['title'] as String;
+      return SummaryMetric(
+        title: title,
+        value: e['value'].toString(),
+        icon: _iconForTitle(title),
+        color: _colorForTitle(title),
+      );
+    }).toList();
   }
 
   /// Fetches dashboard data including metrics, sales series and store
@@ -74,8 +72,8 @@ class ApiService {
     final res = await http.get(_uri(ApiRoutes.metrics));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
 
-    final metrics = (data['metrics'] as List<dynamic>? ?? [])
-        .map((e) {
+    final metrics =
+        (data['metrics'] as List<dynamic>? ?? []).map((e) {
           final title = e['title'] as String;
           return SummaryMetric(
             title: title,
@@ -83,33 +81,39 @@ class ApiService {
             icon: _iconForTitle(title),
             color: _colorForTitle(title),
           );
-        })
-        .toList();
+        }).toList();
 
-    final daily = (data['dailySeries'] as List<dynamic>? ?? [])
-        .map((e) => SalesSeries(
-              e['label'] as String,
-              (e['amount'] as num).toDouble(),
-            ))
-        .toList();
+    final daily =
+        (data['dailySeries'] as List<dynamic>? ?? [])
+            .map(
+              (e) => SalesSeries(
+                e['label'] as String,
+                (e['amount'] as num).toDouble(),
+              ),
+            )
+            .toList();
 
-    final hourly = (data['hourlySeries'] as List<dynamic>? ?? [])
-        .map((e) => SalesSeries(
-              e['label'] as String,
-              (e['amount'] as num).toDouble(),
-            ))
-        .toList();
+    final hourly =
+        (data['hourlySeries'] as List<dynamic>? ?? [])
+            .map(
+              (e) => SalesSeries(
+                e['label'] as String,
+                (e['amount'] as num).toDouble(),
+              ),
+            )
+            .toList();
 
-    final stores = (data['storeComparison'] as List<dynamic>? ?? [])
-        .map(
-          (e) => StoreSales(
-            storeId: e['storeId'] as int,
-            store: (e['store'] as String).trim(),
-            lastYear: (e['lastYear'] as num).toDouble(),
-            thisYear: (e['thisYear'] as num).toDouble(),
-          ),
-        )
-        .toList();
+    final stores =
+        (data['storeComparison'] as List<dynamic>? ?? [])
+            .map(
+              (e) => StoreSales(
+                storeId: e['storeId'] as int,
+                store: (e['store'] as String).trim(),
+                lastYear: (e['lastYear'] as num).toDouble(),
+                thisYear: (e['thisYear'] as num).toDouble(),
+              ),
+            )
+            .toList();
 
     return DashboardData(
       metrics: metrics,
@@ -119,7 +123,7 @@ class ApiService {
     );
   }
 
-  Future<StoreKpiDetail?> fetchStoreKpi(int storeId) async {
+  Future<StoreKpiDetail?> fetchStoreKpiDetail(int storeId) async {
     final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
     if (res.statusCode != 200) return null;
     final data = jsonDecode(res.body) as Map<String, dynamic>;
