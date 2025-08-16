@@ -9,7 +9,6 @@ class ApiRoutes {
   static const register = '/auth/register';
   static const metrics = '/dashboard/metrics';
   static const storeSales = '/stores/sales';
-  static const storeKpi = '/stores/kpi';
   static const weeklySales = '/sales/weekly';
   static const hourlySales = '/sales/hourly';
   static const inventory = '/inventory';
