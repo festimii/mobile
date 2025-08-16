@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+
 import '../metric_detail_screen.dart';
 import '../store_detail_screen.dart';
 import '../../../models/dashboard_models.dart';
 import '../../../services/api_service.dart';
 
+/// =======================
+/// Summary KPI card
+/// =======================
 class SummaryCard extends StatelessWidget {
   final SummaryMetric metric;
 
@@ -67,6 +71,9 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
+/// =======================
+/// Sales bar chart
+/// =======================
 class SalesBarChart extends StatelessWidget {
   final List<SalesSeries> data;
 
@@ -79,17 +86,22 @@ class SalesBarChart extends StatelessWidget {
         alignment: BarChartAlignment.spaceAround,
         barTouchData: BarTouchData(enabled: true),
         titlesData: FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 28,
               getTitlesWidget: (value, _) {
-                int index = value.toInt();
+                final index = value.toInt();
                 if (index >= 0 && index < data.length) {
-                  // On dense hour charts, only show every other label
                   if (data.length > 12 && index.isOdd) {
                     return const SizedBox.shrink();
                   }
@@ -104,11 +116,11 @@ class SalesBarChart extends StatelessWidget {
           ),
         ),
         borderData: FlBorderData(show: false),
-        gridData: FlGridData(show: false),
+        gridData: const FlGridData(show: false),
         barGroups:
             data.asMap().entries.map((entry) {
-              int x = entry.key;
-              double y = entry.value.sales;
+              final x = entry.key;
+              final y = entry.value.sales;
               return BarChartGroupData(
                 x: x,
                 barRods: [
@@ -126,6 +138,9 @@ class SalesBarChart extends StatelessWidget {
   }
 }
 
+/// =======================
+/// Trend card with tabs
+/// =======================
 class SalesTrendCard extends StatelessWidget {
   final List<SalesSeries> weekData;
   final List<SalesSeries> hourData;
@@ -161,7 +176,9 @@ class SalesTrendCard extends StatelessWidget {
   }
 }
 
-/// Displays basic information about a customer.
+/// =======================
+/// Recent customer tile
+/// =======================
 class RecentCustomerTile extends StatelessWidget {
   final RecentCustomer customer;
 
@@ -178,10 +195,16 @@ class RecentCustomerTile extends StatelessWidget {
   }
 }
 
+/// =======================
+/// Filters & sorting enums
+/// =======================
 enum StoreFilter { all, positive, negative }
 
 enum StoreSort { storeNumber, percentChange }
 
+/// =======================
+/// Table of store sales
+/// =======================
 class StoreSalesTable extends StatefulWidget {
   final List<StoreSales> salesData;
 
@@ -203,13 +226,10 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
     super.dispose();
   }
 
-  Future<void> _showStoreDetails(StoreSales sales) async {
-    final api = ApiService();
-    final metrics = await api.fetchStoreKpi(sales.storeId);
-    if (!mounted) return;
+  void _openStore(StoreSales sales) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => StoreDetailScreen(metrics: metrics)),
+      MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: sales)),
     );
   }
 
@@ -221,7 +241,7 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
               return s.percentChange > 0;
             case StoreFilter.negative:
               return s.percentChange < 0;
-            default:
+            case StoreFilter.all:
               return true;
           }
         }).toList();
@@ -231,21 +251,19 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
       filtered.retainWhere((s) => s.store.toLowerCase().trim().contains(query));
     }
 
+    int storeNum(String name) {
+      final m = RegExp(r'\d+').firstMatch(name);
+      return m != null ? int.tryParse(m.group(0)!) ?? 0 : 0;
+    }
+
     filtered.sort((a, b) {
-      int comparison;
-      if (sortBy == StoreSort.storeNumber) {
-        final aNum =
-            int.tryParse(RegExp(r'\d+').firstMatch(a.store)?.group(0) ?? '') ??
-            0;
-        final bNum =
-            int.tryParse(RegExp(r'\d+').firstMatch(b.store)?.group(0) ?? '') ??
-            0;
-        comparison = aNum.compareTo(bNum);
-      } else {
-        comparison = a.percentChange.compareTo(b.percentChange);
-      }
+      int comparison =
+          (sortBy == StoreSort.storeNumber)
+              ? storeNum(a.store).compareTo(storeNum(b.store))
+              : a.percentChange.compareTo(b.percentChange);
       return sortAscending ? comparison : -comparison;
     });
+
     return filtered;
   }
 
@@ -309,6 +327,7 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.search),
             hintText: 'Search stores',
+            border: OutlineInputBorder(),
           ),
           onChanged: (_) => setState(() {}),
         ),
@@ -346,7 +365,7 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
                   color: color,
                   borderRadius: BorderRadius.circular(12),
                   child: InkWell(
-                    onTap: () => _showStoreDetails(s),
+                    onTap: () => _openStore(s),
                     borderRadius: BorderRadius.circular(12),
                     splashColor: Theme.of(
                       context,
@@ -418,6 +437,9 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
   }
 }
 
+/// =======================
+/// Home tab
+/// =======================
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
@@ -444,7 +466,7 @@ class _HomeTabState extends State<HomeTab> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError || !snapshot.hasData) {
-          return Center(child: Text('Error loading dashboard'));
+          return const Center(child: Text('Error loading dashboard'));
         }
 
         final data = snapshot.data!;
@@ -542,15 +564,14 @@ class _HomeTabState extends State<HomeTab> {
   }
 }
 
-// ===== Filterable store list with UI filters =====
+/// =======================
+/// Filterable animated store list
+/// =======================
 class FilterableAnimatedStoreSalesTable extends StatefulWidget {
   final List<StoreSales> salesData;
+
   const FilterableAnimatedStoreSalesTable({super.key, required this.salesData});
 
-  Future<void> _showStoreDetails(BuildContext context, StoreSales sale) async {
-    final api = ApiService();
-    final metrics = await api.fetchStoreKpi(sale.storeId);
-    if (!context.mounted) return;
   @override
   State<FilterableAnimatedStoreSalesTable> createState() =>
       _FilterableAnimatedStoreSalesTableState();
@@ -579,7 +600,6 @@ class _FilterableAnimatedStoreSalesTableState
             case StoreFilter.negative:
               return s.percentChange < 0;
             case StoreFilter.all:
-            default:
               return true;
           }
         }).toList();
@@ -595,7 +615,7 @@ class _FilterableAnimatedStoreSalesTableState
     }
 
     filtered.sort((a, b) {
-      int cmp =
+      final cmp =
           (_sortBy == StoreSort.storeNumber)
               ? storeNum(a.store).compareTo(storeNum(b.store))
               : a.percentChange.compareTo(b.percentChange);
@@ -617,7 +637,11 @@ class _FilterableAnimatedStoreSalesTableState
   void _open(StoreSales s) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => StoreDetailScreen(metrics: metrics)),
+      MaterialPageRoute(builder: (_) => StoreSalesTable(salesData: [s])),
+    ); // Optional: quick preview (replace with detail screen if desired)
+    // Preferred: go to detail screen
+    Navigator.push(
+      context,
       MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: s)),
     );
   }
