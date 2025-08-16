@@ -72,10 +72,36 @@ class MockApiService {
     await Future.delayed(const Duration(milliseconds: 300));
     return List.generate(120, (i) {
       return StoreSales(
+        storeId: i + 1,
         store: 'VFS${i + 1}',
         lastYear: 10000 + i * 600,
         thisYear: 12000 + i * 650 - (i % 5 == 0 ? 3000 : 0),
       );
     });
+  }
+
+  Future<StoreKpiMetrics> fetchStoreKpi(int storeId) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return StoreKpiMetrics(
+      storeId: storeId,
+      storeName: 'VFS 01 Ferizaj',
+      revenueToday: 6105.48,
+      revenuePy: 7170.55,
+      txToday: 780,
+      txPy: 1078,
+      avgBasketToday: 7.83,
+      avgBasketPy: 6.65,
+      revenueDiff: -1065.07,
+      revenuePct: -14.85,
+      txDiff: -298,
+      txPct: -27.64,
+      avgBasketDiff: 1.18,
+      peakHour: 18,
+      peakHourLabel: '18h',
+      peakHourRevenue: 723.62,
+      topArtCode: '017419',
+      topArtRevenue: 185.10,
+      topArtName: 'Red Bull 0.25L',
+    );
   }
 }
