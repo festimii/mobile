@@ -129,13 +129,94 @@ public class DashboardService {
 
         // Daily series labels as day-of-week: Mon, Tue, ...
         List<Point> dailySeries  = mapDailyPointsWithDOW(rs2, "Label", "Amount");
-        List<Point> hourlySeries = mapPoints(rs3, "HourLabel", "Amount");
+        List<Point> hourlySeries = mapHourlyCompressed(rs3, "HourLabel", "Amount");
         List<StoreCompare> storeComparison = mapStores(rs4, "Store", "LastYear", "ThisYear");
 
         return new DashboardPayload(metrics, dailySeries, hourlySeries, storeComparison);
     }
 
     // ----------------- helpers -----------------
+// ---- hourly compression helpers ----
+    private static final BigDecimal FOUR_HUNDRED = new BigDecimal("400");
+
+    private static final class HourBin {
+        final int hour;         // 0..23
+        final String label;     // original label e.g. "5h", "05:00"
+        BigDecimal value;       // mutable
+        HourBin(int hour, String label, BigDecimal value) {
+            this.hour = hour;
+            this.label = label;
+            this.value = value;
+        }
+    }
+
+    private static int parseHour(String label) {
+        if (label == null) return -1;
+        // accept "5h", "05", "05:00", "5", etc.
+        var m = java.util.regex.Pattern.compile("(\\d{1,2})").matcher(label);
+        if (m.find()) {
+            int h = Integer.parseInt(m.group(1));
+            return (h >= 0 && h <= 23) ? h : -1;
+        }
+        return -1;
+    }
+
+    /**
+     * Removes zero-amount hours and merges any hour with amount <= 400 into the next hour
+     * (or previous kept hour if it's the last). Returns formatted Points.
+     */
+    private static List<Point> mapHourlyCompressed(List<Map<String, Object>> rows, String labelCol, String amtCol) {
+        if (rows == null || rows.isEmpty()) return List.of();
+
+        // Normalize -> HourBin and sort by hour
+        List<HourBin> bins = new ArrayList<>();
+        for (Map<String, Object> r : rows) {
+            String lbl = String.valueOf(r.getOrDefault(labelCol, "")).trim();
+            int hour = parseHour(lbl);
+            if (hour < 0) continue; // skip unparseable labels
+            BigDecimal val = toDecimal(r.get(amtCol));
+            bins.add(new HourBin(hour, lbl, val));
+        }
+        bins.sort(Comparator.comparingInt(b -> b.hour));
+
+        // First pass: drop zeros
+        List<HourBin> nonZero = new ArrayList<>();
+        for (HourBin b : bins) {
+            if (b.value.compareTo(BigDecimal.ZERO) > 0) {
+                nonZero.add(b);
+            }
+        }
+        if (nonZero.isEmpty()) return List.of();
+
+        // Second pass: merge small hours (<= 400) forward; if last, merge backward
+        List<HourBin> kept = new ArrayList<>();
+        for (int i = 0; i < nonZero.size(); i++) {
+            HourBin cur = nonZero.get(i);
+
+            if (cur.value.compareTo(FOUR_HUNDRED) <= 0) {
+                // merge into next if exists, else into previous kept if any
+                if (i + 1 < nonZero.size()) {
+                    nonZero.get(i + 1).value = nonZero.get(i + 1).value.add(cur.value);
+                } else if (!kept.isEmpty()) {
+                    kept.get(kept.size() - 1).value = kept.get(kept.size() - 1).value.add(cur.value);
+                } else {
+                    // edge: only one tiny bucket exists; keep it as-is
+                    kept.add(cur);
+                }
+                // do not keep cur as its own bar
+                continue;
+            }
+
+            kept.add(cur);
+        }
+
+        // Build Points (label stays with the kept/recipient hour)
+        List<Point> out = new ArrayList<>(kept.size());
+        for (HourBin b : kept) {
+            out.add(new Point(b.label, b.value, formatCompact(b.value)));
+        }
+        return out;
+    }
 
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> getList(Map<String, Object> out, String primaryKey, String altKey) {
@@ -172,7 +253,7 @@ public class DashboardService {
         List<StoreCompare> out = new ArrayList<>(rows.size());
         for (Map<String, Object> r : rows) {
             String store = String.valueOf(r.getOrDefault(storeCol, ""));
-            BigDecimal lastYear = toDecimal(r.get(lastYearCol));
+            store = store.trim();             BigDecimal lastYear = toDecimal(r.get(lastYearCol));
             BigDecimal thisYear = toDecimal(r.get(thisYearCol));
             out.add(new StoreCompare(
                     store,
