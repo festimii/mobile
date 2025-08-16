@@ -21,9 +21,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _kpiFuture =
-        ApiService().fetchStoreKpi(widget.sales.storeId)
-            as Future<StoreKpiDetail?>;
+    _kpiFuture = ApiService().fetchStoreKpiDetail(widget.sales.storeId);
   }
 
   @override

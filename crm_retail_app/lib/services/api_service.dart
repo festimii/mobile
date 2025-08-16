@@ -201,7 +201,7 @@ class ApiService {
 
   /// Fetches detailed KPI metrics for a single store.
   Future<StoreKpiMetrics> fetchStoreKpi(int storeId) async {
-    final res = await http.get(_uri('${ApiRoutes.storeKpi}/$storeId'));
+    final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiMetrics.fromJson(data);
   }
