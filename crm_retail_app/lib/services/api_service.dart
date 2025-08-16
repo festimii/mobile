@@ -106,12 +106,26 @@ class ApiService {
     final stores =
         (data['storeComparison'] as List<dynamic>? ?? [])
             .map(
-              (e) => StoreSales(
-                storeId: e['storeId'] as int,
-                store: (e['store'] as String).trim(),
-                lastYear: (e['lastYear'] as num).toDouble(),
-                thisYear: (e['thisYear'] as num).toDouble(),
-              ),
+              (e) {
+                final storeName = (e['store'] as String).trim();
+
+                // Some backend versions omit the numeric store ID and only provide a
+                // human readable store name like "Store 101". Extract the digits so
+                // that downstream widgets can still fetch detailed KPIs.
+                int parseStoreId() {
+                  final id = e['storeId'];
+                  if (id is int) return id;
+                  final match = RegExp(r'\d+').firstMatch(storeName);
+                  return match != null ? int.parse(match.group(0)!) : 0;
+                }
+
+                return StoreSales(
+                  storeId: parseStoreId(),
+                  store: storeName,
+                  lastYear: (e['lastYear'] as num).toDouble(),
+                  thisYear: (e['thisYear'] as num).toDouble(),
+                );
+              },
             )
             .toList();
 
