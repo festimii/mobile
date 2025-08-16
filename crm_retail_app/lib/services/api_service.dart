@@ -103,31 +103,42 @@ class ApiService {
             )
             .toList();
 
-    final stores =
-        (data['storeComparison'] as List<dynamic>? ?? [])
-            .map(
-              (e) {
-                final storeName = (e['store'] as String).trim();
+// Resolve merge: robust parsing + optional display fields preserved.
+final stores = (data['storeComparison'] as List<dynamic>? ?? const [])
+    .map<StoreSales>((raw) {
+      final e = (raw as Map).cast<String, dynamic>();
 
-                // Some backend versions omit the numeric store ID and only provide a
-                // human readable store name like "Store 101". Extract the digits so
-                // that downstream widgets can still fetch detailed KPIs.
-                int parseStoreId() {
-                  final id = e['storeId'];
-                  if (id is int) return id;
-                  final match = RegExp(r'\d+').firstMatch(storeName);
-                  return match != null ? int.parse(match.group(0)!) : 0;
-                }
+      final storeName = (e['store'] as String? ?? '').trim();
 
-                return StoreSales(
-                  storeId: parseStoreId(),
-                  store: storeName,
-                  lastYear: (e['lastYear'] as num).toDouble(),
-                  thisYear: (e['thisYear'] as num).toDouble(),
-                );
-              },
-            )
-            .toList();
+      int parseStoreId() {
+        final id = e['storeId'];
+        if (id is num) return id.toInt();
+        if (id is String) {
+          final direct = int.tryParse(id.trim());
+          if (direct != null) return direct;
+        }
+        final m = RegExp(r'\d+').firstMatch(storeName);
+        return m != null ? int.tryParse(m.group(0)!) ?? 0 : 0;
+      }
+
+      double toDouble(dynamic v) {
+        if (v is num) return v.toDouble();
+        if (v is String) return double.tryParse(v.replaceAll(',', '')) ?? 0.0;
+        return 0.0;
+      }
+
+      return StoreSales(
+        storeId: parseStoreId(),
+        store: storeName,
+        lastYear: toDouble(e['lastYear']),
+        thisYear: toDouble(e['thisYear']),
+        // Keep these if your model supports them (optional fields).
+        lastYearDisplay: e['lastYearDisplay'] as String?,
+        thisYearDisplay: e['thisYearDisplay'] as String?,
+      );
+    })
+    .toList();
+
 
     return DashboardData(
       metrics: metrics,
@@ -190,10 +201,12 @@ class ApiService {
     return data
         .map(
           (e) => StoreSales(
-            storeId: e['storeId'] as int,
+            storeId: (e['storeId'] as num?)?.toInt(),
             store: (e['store'] as String).trim(),
-            lastYear: (e['lastYear'] as num).toDouble(),
-            thisYear: (e['thisYear'] as num).toDouble(),
+            lastYear: (e['lastYear'] as num?)?.toDouble() ?? 0,
+            thisYear: (e['thisYear'] as num?)?.toDouble() ?? 0,
+            lastYearDisplay: e['lastYearDisplay'] as String?,
+            thisYearDisplay: e['thisYearDisplay'] as String?,
           ),
         )
         .toList();
@@ -201,7 +214,7 @@ class ApiService {
 
   /// Fetches detailed KPI metrics for a single store.
   Future<StoreKpiMetrics> fetchStoreKpi(int storeId) async {
-    final res = await http.get(_uri('${ApiRoutes.storeKpi}/$storeId'));
+    final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiMetrics.fromJson(data);
   }

@@ -38,19 +38,29 @@ class RecentCustomer {
 
 /// Sales data per store for comparison tables.
 class StoreSales {
-  final int storeId;
+  /// Optional identifier. Some endpoints do not provide an id which previously
+  /// caused runtime type errors when parsing the payload. Keeping it nullable
+  /// allows the UI to render available data even without the id.
+  final int? storeId;
   final String store;
   final double lastYear;
   final double thisYear;
 
+  /// Preformatted display strings returned by the backend (e.g. "1.2K").
+  final String? lastYearDisplay;
+  final String? thisYearDisplay;
+
   StoreSales({
-    required this.storeId,
+    this.storeId,
     required this.store,
     required this.lastYear,
     required this.thisYear,
+    this.lastYearDisplay,
+    this.thisYearDisplay,
   });
 
-  double get percentChange => ((thisYear - lastYear) / lastYear) * 100;
+  double get percentChange =>
+      lastYear == 0 ? (thisYear == 0 ? 0 : 100) : ((thisYear - lastYear) / lastYear) * 100;
 }
 
 /// Detailed KPI metrics for a single store, populated from the
