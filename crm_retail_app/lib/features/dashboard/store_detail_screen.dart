@@ -46,17 +46,20 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
               'Shitje',
               data.revenueToday,
               data.revenuePY,
+              icon: Icons.attach_money,
               isCurrency: true,
             ),
             _ComparisonMetric(
               'Kupona',
               data.txToday.toDouble(),
               data.txPY.toDouble(),
+              icon: Icons.receipt_long,
             ),
             _ComparisonMetric(
               'Shporta mesatare',
               data.avgBasketToday,
               data.avgBasketPY,
+              icon: Icons.shopping_cart,
               isCurrency: true,
             ),
           ];
@@ -114,9 +117,6 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
     List<_ComparisonMetric> metrics,
   ) {
     final theme = Theme.of(context);
-    String format(_ComparisonMetric m, num v) =>
-        m.isCurrency ? _eur(v) : v.toStringAsFixed(0);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -128,39 +128,16 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Metric')),
-              DataColumn(label: Text('Sod')),
-              DataColumn(label: Text('Viti i kaluar')),
-              DataColumn(label: Text('Δ')),
-              DataColumn(label: Text('%')),
-            ],
-            rows:
-                metrics.map((m) {
-                  final diff = m.current - m.previous;
-                  final pct = _pct(m.current, m.previous);
-                  final color = diff >= 0 ? Colors.green : Colors.red;
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(m.label)),
-                      DataCell(Text(format(m, m.current))),
-                      DataCell(Text(format(m, m.previous))),
-                      DataCell(
-                        Text(format(m, diff), style: TextStyle(color: color)),
-                      ),
-                      DataCell(
-                        Text(
-                          '${pct.toStringAsFixed(1)}%',
-                          style: TextStyle(color: color),
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-          ),
+        GridView.count(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          // Give cards a bit more height to avoid overflow
+          childAspectRatio: 1,
+          children:
+              metrics.map((m) => _ComparisonCard(metric: m)).toList(),
         ),
         const SizedBox(height: 28),
       ],
@@ -190,7 +167,8 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.2,
+          // Slightly taller cards to handle long values like top products
+          childAspectRatio: 0.9,
           children: kpis.map((kpi) => _KpiCard(kpi: kpi)).toList(),
         ),
         const SizedBox(height: 28),
@@ -205,14 +183,73 @@ class _ComparisonMetric {
   final String label;
   final double current;
   final double previous;
+  final IconData icon;
   final bool isCurrency;
 
   const _ComparisonMetric(
     this.label,
     this.current,
     this.previous, {
+    required this.icon,
     this.isCurrency = false,
   });
+}
+
+class _ComparisonCard extends StatelessWidget {
+  final _ComparisonMetric metric;
+  const _ComparisonCard({required this.metric});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final diff = metric.current - metric.previous;
+    final pct = _pct(metric.current, metric.previous);
+    final color = diff >= 0 ? Colors.green : Colors.red;
+    String format(num v) =>
+        metric.isCurrency ? _eur(v) : v.toStringAsFixed(0);
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(metric.icon, color: theme.primaryColor, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              metric.label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              format(metric.current),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Prev: ${format(metric.previous)}',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${diff >= 0 ? '+' : ''}${format(diff)} (${pct.toStringAsFixed(1)}%)',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _KpiTile {
@@ -237,6 +274,7 @@ class _KpiCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(kpi.icon, color: theme.primaryColor, size: 28),
             const SizedBox(height: 10),
@@ -248,10 +286,15 @@ class _KpiCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              kpi.value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                kpi.value,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
