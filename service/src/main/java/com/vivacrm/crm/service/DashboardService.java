@@ -159,7 +159,7 @@ public class DashboardService {
                         m("Viti Kaluar", compactFromMap(metricsRow, "AvgBasketSizePY"))
                 )),
 
-                m("Top Pika",compactFromMap(metricsRow, "TopStoreName"),List.of(
+                m("Top Pika", asString(metricsRow, "TopStoreName", ""), List.of(
                         m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue"))
                 ))
         );
