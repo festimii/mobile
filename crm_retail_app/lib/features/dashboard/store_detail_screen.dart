@@ -40,58 +40,31 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 
           final data = snap.data!;
 
-          // ===== Derived metrics (safe guards for division by zero) =====
-          double _pct(double cur, double py) {
-            if (py == 0) return cur == 0 ? 0 : 100;
-            return ((cur - py) / py) * 100.0;
-          }
+          // ===== Data for comparison table =====
+          final comparisonMetrics = <_ComparisonMetric>[
+            _ComparisonMetric(
+              'Shitje',
+              data.revenueToday,
+              data.revenuePY,
+              icon: Icons.attach_money,
+              isCurrency: true,
+            ),
+            _ComparisonMetric(
+              'Kupona',
+              data.txToday.toDouble(),
+              data.txPY.toDouble(),
+              icon: Icons.receipt_long,
+            ),
+            _ComparisonMetric(
+              'Shporta mesatare',
+              data.avgBasketToday,
+              data.avgBasketPY,
+              icon: Icons.shopping_cart,
+              isCurrency: true,
+            ),
+          ];
 
-          final revenuePct = _pct(data.revenueToday, data.revenuePY);
-          final txPct = _pct(data.txToday.toDouble(), data.txPY.toDouble());
-          final revenueDiff = data.revenueToday - data.revenuePY;
           final txDiff = data.txToday - data.txPY;
-          final avgBasketDiff = data.avgBasketToday - data.avgBasketPY;
-
-          // ===== KPI groups =====
-          final salesKpis = <_KpiTile>[
-            _KpiTile('Revenue Today', _eur(data.revenueToday), Icons.today),
-            _KpiTile('Revenue PY', _eur(data.revenuePY), Icons.calendar_today),
-            _KpiTile(
-              'Revenue %',
-              '${revenuePct.toStringAsFixed(1)}%',
-              revenuePct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-            ),
-            _KpiTile(
-              'Revenue Δ',
-              _eur(revenueDiff),
-              revenueDiff >= 0 ? Icons.trending_up : Icons.trending_down,
-            ),
-          ];
-
-          final customerKpis = <_KpiTile>[
-            _KpiTile('Tx Today', '${data.txToday}', Icons.receipt_long),
-            _KpiTile('Tx PY', '${data.txPY}', Icons.history),
-            _KpiTile(
-              'Tx %',
-              '${txPct.toStringAsFixed(1)}%',
-              txPct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-            ),
-            _KpiTile(
-              'Avg Basket Today',
-              _eur(data.avgBasketToday),
-              Icons.shopping_basket,
-            ),
-            _KpiTile(
-              'Avg Basket PY',
-              _eur(data.avgBasketPY),
-              Icons.shopping_basket_outlined,
-            ),
-            _KpiTile(
-              'Avg Basket Δ',
-              _eur(avgBasketDiff),
-              avgBasketDiff >= 0 ? Icons.trending_up : Icons.trending_down,
-            ),
-          ];
 
           final inventoryKpis = <_KpiTile>[
             if ((data.topArtCode ?? '').isNotEmpty)
@@ -125,8 +98,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             padding: const EdgeInsets.all(16),
             child: ListView(
               children: [
-                _buildSection(context, '📊 Sales KPIs', salesKpis),
-                _buildSection(context, '🛍️ Customer Behavior', customerKpis),
+                _buildComparisonSection(context, comparisonMetrics),
                 if (inventoryKpis.isNotEmpty)
                   _buildSection(context, '📦 Inventory KPIs', inventoryKpis),
                 _buildSection(context, '🧮 Operational Metrics', opsKpis),
@@ -139,6 +111,36 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   }
 
   // ===== UI helpers =====
+
+  Widget _buildComparisonSection(
+    BuildContext context,
+    List<_ComparisonMetric> metrics,
+  ) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '📈 Vit per Vit Krahasimi',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.primaryColor,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.1,
+          children: metrics.map((m) => _ComparisonCard(metric: m)).toList(),
+        ),
+        const SizedBox(height: 28),
+      ],
+    );
+  }
 
   Widget _buildSection(
     BuildContext context,
@@ -163,7 +165,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.2,
+          childAspectRatio: 1.1,
           children: kpis.map((kpi) => _KpiCard(kpi: kpi)).toList(),
         ),
         const SizedBox(height: 28),
@@ -173,6 +175,78 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 }
 
 // ===== Small value objects / widgets =====
+
+class _ComparisonMetric {
+  final String label;
+  final double current;
+  final double previous;
+  final IconData icon;
+  final bool isCurrency;
+
+  const _ComparisonMetric(
+    this.label,
+    this.current,
+    this.previous, {
+    required this.icon,
+    this.isCurrency = false,
+  });
+}
+
+class _ComparisonCard extends StatelessWidget {
+  final _ComparisonMetric metric;
+  const _ComparisonCard({required this.metric});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final diff = metric.current - metric.previous;
+    final pct = _pct(metric.current, metric.previous);
+    final color = diff >= 0 ? Colors.green : Colors.red;
+    String format(num v) => metric.isCurrency ? _eur(v) : v.toStringAsFixed(0);
+
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(metric.icon, color: theme.primaryColor, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              metric.label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              format(metric.current),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Prev: ${format(metric.previous)}',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${diff >= 0 ? '+' : ''}${format(diff)} (${pct.toStringAsFixed(1)}%)',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _KpiTile {
   final String title;
@@ -196,6 +270,7 @@ class _KpiCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(kpi.icon, color: theme.primaryColor, size: 28),
             const SizedBox(height: 10),
@@ -207,10 +282,15 @@ class _KpiCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              kpi.value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                kpi.value,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -222,3 +302,7 @@ class _KpiCard extends StatelessWidget {
 
 // ===== Formatting =====
 String _eur(num v) => '€${v.toStringAsFixed(2)}';
+double _pct(num cur, num py) {
+  if (py == 0) return cur == 0 ? 0 : 100;
+  return ((cur - py) / py) * 100.0;
+}

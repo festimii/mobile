@@ -104,30 +104,26 @@ class ApiService {
             .toList();
 
     final stores =
-        (data['storeComparison'] as List<dynamic>? ?? [])
-            .map(
-              (e) {
-                final storeName = (e['store'] as String).trim();
+        (data['storeComparison'] as List<dynamic>? ?? []).map((e) {
+          final storeName = (e['store'] as String).trim();
 
-                // Some backend versions omit the numeric store ID and only provide a
-                // human readable store name like "Store 101". Extract the digits so
-                // that downstream widgets can still fetch detailed KPIs.
-                int parseStoreId() {
-                  final id = e['storeId'];
-                  if (id is int) return id;
-                  final match = RegExp(r'\d+').firstMatch(storeName);
-                  return match != null ? int.parse(match.group(0)!) : 0;
-                }
+          // Some backend versions omit the numeric store ID and only provide a
+          // human readable store name like "Store 101". Extract the digits so
+          // that downstream widgets can still fetch detailed KPIs.
+          int parseStoreId() {
+            final id = e['storeId'];
+            if (id is int) return id;
+            final match = RegExp(r'\d+').firstMatch(storeName);
+            return match != null ? int.parse(match.group(0)!) : 0;
+          }
 
-                return StoreSales(
-                  storeId: parseStoreId(),
-                  store: storeName,
-                  lastYear: (e['lastYear'] as num).toDouble(),
-                  thisYear: (e['thisYear'] as num).toDouble(),
-                );
-              },
-            )
-            .toList();
+          return StoreSales(
+            storeId: parseStoreId(),
+            store: storeName,
+            lastYear: (e['lastYear'] as num).toDouble(),
+            thisYear: (e['thisYear'] as num).toDouble(),
+          );
+        }).toList();
 
     return DashboardData(
       metrics: metrics,
@@ -152,13 +148,13 @@ class ApiService {
         return Icons.shopping_cart_checkout;
       case 'Avg Basket Size':
         return Icons.shopping_bag;
-      case 'Top Product Code':
-      case 'Top Product Name':
-        return Icons.star;
-      case 'Returns Today':
-        return Icons.undo;
-      case 'Low Inventory Count':
-        return Icons.inventory_2;
+      // case 'Top Product Code':
+      //case 'Top Product Name':
+      // return Icons.star;
+      //case 'Returns Today':
+      // return Icons.undo;
+      //case 'Low Inventory Count':
+      // return Icons.inventory_2;
       default:
         return Icons.insert_chart;
     }
@@ -172,13 +168,13 @@ class ApiService {
         return Colors.blue;
       case 'Avg Basket Size':
         return Colors.indigo;
-      case 'Top Product Code':
-      case 'Top Product Name':
-        return Colors.amber;
-      case 'Returns Today':
-        return Colors.redAccent;
-      case 'Low Inventory Count':
-        return Colors.orange;
+      // case 'Top Product Code':
+      // case 'Top Product Name':
+      //  return Colors.amber;
+      //case 'Returns Today':
+      //  return Colors.redAccent;
+      // case 'Low Inventory Count':
+      //   return Colors.orange;
       default:
         return Colors.teal;
     }
