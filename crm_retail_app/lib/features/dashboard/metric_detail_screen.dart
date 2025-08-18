@@ -39,45 +39,53 @@ class MetricDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.2,
-                children:
-                    subKpis.map((kpi) {
-                      return Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              child: subKpis.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No additional data',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey,
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(kpi.icon, color: metric.color, size: 28),
-                              const SizedBox(height: 10),
-                              Text(
-                                kpi.title,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                kpi.value,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                      ),
+                    )
+                  : GridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.2,
+                      children: subKpis.map((kpi) {
+                        return Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                      );
-                    }).toList(),
-              ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(kpi.icon, color: metric.color, size: 28),
+                                const SizedBox(height: 10),
+                                Text(
+                                  kpi.title,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  kpi.value,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
             ),
           ],
         ),
@@ -107,13 +115,19 @@ Map<String, List<SubKpi>> _shortKpis = {
     SubKpi('Online %', '28%', Icons.wifi),
     SubKpi('Repeat', '36%', Icons.repeat),
   ],
-  'Avg. Basket Size': [
+  'Avg Basket Size': [
     SubKpi('Trend', '+5.2%', Icons.trending_up),
     SubKpi('Add-On', 'Bread', Icons.add),
     SubKpi('> €20', '23%', Icons.shopping_cart),
     SubKpi('By Cat.', '€18.10', Icons.category),
   ],
-  'Top Product': [
+  'Top Product Code': [
+    SubKpi('Sold Today', '221', Icons.check_circle),
+    SubKpi('Revenue %', '8.4%', Icons.pie_chart),
+    SubKpi('Attach Rate', '41%', Icons.link),
+    SubKpi('Stock Left', '52', Icons.inventory),
+  ],
+  'Top Product Name': [
     SubKpi('Sold Today', '221', Icons.check_circle),
     SubKpi('Revenue %', '8.4%', Icons.pie_chart),
     SubKpi('Attach Rate', '41%', Icons.link),
@@ -125,7 +139,19 @@ Map<String, List<SubKpi>> _shortKpis = {
     SubKpi('Damage', '46%', Icons.report_problem),
     SubKpi('Exchanges', '29%', Icons.swap_horiz),
   ],
-  'Low Inventory': [
+  'Returns Value': [
+    SubKpi('Return %', '1.4%', Icons.percent),
+    SubKpi('Top Item', 'Milk 1L', Icons.assignment_return),
+    SubKpi('Damage', '46%', Icons.report_problem),
+    SubKpi('Exchanges', '29%', Icons.swap_horiz),
+  ],
+  'Returns Rate': [
+    SubKpi('Return %', '1.4%', Icons.percent),
+    SubKpi('Top Item', 'Milk 1L', Icons.assignment_return),
+    SubKpi('Damage', '46%', Icons.report_problem),
+    SubKpi('Exchanges', '29%', Icons.swap_horiz),
+  ],
+  'Low Inventory Count': [
     SubKpi('Days Left', '3.1d', Icons.calendar_today),
     SubKpi('Daily Sales', '18', Icons.bar_chart),
     SubKpi('Lead Time', '5d', Icons.access_time_filled),

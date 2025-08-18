@@ -142,21 +142,43 @@ class ApiService {
 
   IconData _iconForTitle(String title) {
     switch (title) {
+      case 'Cutoff Hour':
+        return Icons.schedule;
       case 'Total Revenue':
+        return Icons.attach_money;
+      case 'Total Revenue PY':
         return Icons.attach_money;
       case 'Transactions':
         return Icons.shopping_cart_checkout;
+      case 'Transactions PY':
+        return Icons.shopping_cart;
       case 'Avg Basket Size':
         return Icons.shopping_bag;
+      case 'Avg Basket Size PY':
+        return Icons.shopping_bag;
+      case 'Revenue Yesterday':
+        return Icons.today;
+      case 'Revenue Vs Yesterday':
+        return Icons.trending_up;
+      case 'Revenue Vs PY':
+        return Icons.show_chart;
       case 'Top Product Code':
       case 'Top Product Name':
         return Icons.star;
+      case 'Top Store OE':
+      case 'Top Store Name':
+        return Icons.store;
+      case 'Top Store Revenue':
+        return Icons.storefront;
       case 'Returns Today':
       case 'Returns Value':
         return Icons.undo;
       case 'Returns Rate':
       case 'Discount Share':
         return Icons.percent;
+      case 'Peak Hour':
+      case 'Peak Hour Label':
+        return Icons.access_time;
       case 'Low Inventory Count':
         return Icons.inventory_2;
       default:
@@ -166,15 +188,34 @@ class ApiService {
 
   Color _colorForTitle(String title) {
     switch (title) {
+      case 'Cutoff Hour':
+        return Colors.cyan;
       case 'Total Revenue':
         return Colors.green;
+      case 'Total Revenue PY':
+        return Colors.greenAccent;
       case 'Transactions':
         return Colors.blue;
+      case 'Transactions PY':
+        return Colors.blueGrey;
       case 'Avg Basket Size':
         return Colors.indigo;
+      case 'Avg Basket Size PY':
+        return Colors.indigoAccent;
+      case 'Revenue Yesterday':
+        return Colors.lightGreen;
+      case 'Revenue Vs Yesterday':
+        return Colors.purple;
+      case 'Revenue Vs PY':
+        return Colors.deepPurple;
       case 'Top Product Code':
       case 'Top Product Name':
         return Colors.amber;
+      case 'Top Store OE':
+      case 'Top Store Name':
+        return Colors.brown;
+      case 'Top Store Revenue':
+        return Colors.green;
       case 'Returns Today':
       case 'Returns Value':
       case 'Returns Rate':
@@ -183,6 +224,9 @@ class ApiService {
         return Colors.deepPurple;
       case 'Low Inventory Count':
         return Colors.orange;
+      case 'Peak Hour':
+      case 'Peak Hour Label':
+        return Colors.cyan;
       default:
         return Colors.teal;
     }
