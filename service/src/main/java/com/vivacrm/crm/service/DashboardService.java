@@ -141,13 +141,11 @@ public class DashboardService {
 
         // ---- grouped metrics with sub-metrics ----
         List<Metric> metrics = List.of(
-                m("Total Revenue", compactFromMap(metricsRow, "TotalRevenue"), List.of(
+                m("Shitjet Sod", compactFromMap(metricsRow, "TotalRevenue"), List.of(
                         m("VS Dje", compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
                         m("Vs Viti Kaluar", compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
                         m("Total Viti Kaluar", compactFromMap(metricsRow, "TotalRevenuePY")),
                         m("Dje", compactFromMap(metricsRow, "RevenueYesterday")),
-                        m("Top Pika", asString(metricsRow, "TopStoreName", "")),
-                        m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue")),
                         m("Total Peek", asString(metricsRow, "PeakHour", ""))
                 )),
 
@@ -159,6 +157,10 @@ public class DashboardService {
                 m("Shporta Mesatare", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
                         m("Vs Viti Kaluar", pctFromMap(metricsRow, "AvgBasketSize", "AvgBasketSizePY") + "%"),
                         m("Viti Kaluar", compactFromMap(metricsRow, "AvgBasketSizePY"))
+                )),
+
+                m("Top Pika",compactFromMap(metricsRow, "TopStoreName"),List.of(
+                        m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue"))
                 ))
         );
 
