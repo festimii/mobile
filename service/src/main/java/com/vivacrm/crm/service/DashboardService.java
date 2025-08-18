@@ -125,11 +125,14 @@ public class DashboardService {
         List<Metric> metrics = List.of(
                 new Metric("Total Revenue",       compactFromMap(metricsRow, "TotalRevenue")),
                 new Metric("Transactions",        compactFromMap(metricsRow, "Transactions")),
-                new Metric("Avg Basket Size",     compactFromMap(metricsRow, "AvgBasketSize"))
-                //new Metric("Top Product Code",    asString(metricsRow, "TopProductCode", "")),
-                //new Metric("Top Product Name",    asString(metricsRow, "TopProductName", "")),
-                //new Metric("Returns Today",       compactFromMap(metricsRow, "ReturnsToday")),
-                //new Metric("Low Inventory Count", compactFromMap(metricsRow, "LowInventoryCount"))
+                new Metric("Avg Basket Size",     compactFromMap(metricsRow, "AvgBasketSize")),
+                new Metric("Top Product Code",    asString(metricsRow, "TopProductCode", "")),
+                new Metric("Top Product Name",    asString(metricsRow, "TopProductName", "")),
+                new Metric("Returns Today",       compactFromMap(metricsRow, "ReturnsToday")),
+                new Metric("Returns Value",       compactFromMap(metricsRow, "ReturnsValue")),
+                new Metric("Returns Rate",        compactFromMap(metricsRow, "ReturnsRatePct") + "%"),
+                new Metric("Discount Share",      compactFromMap(metricsRow, "DiscountSharePct") + "%"),
+                new Metric("Low Inventory Count", compactFromMap(metricsRow, "LowInventoryCount"))
         );
 
         // Daily series labels as day-of-week: Mon, Tue, ...

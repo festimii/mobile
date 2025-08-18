@@ -148,13 +148,17 @@ class ApiService {
         return Icons.shopping_cart_checkout;
       case 'Avg Basket Size':
         return Icons.shopping_bag;
-      // case 'Top Product Code':
-      //case 'Top Product Name':
-      // return Icons.star;
-      //case 'Returns Today':
-      // return Icons.undo;
-      //case 'Low Inventory Count':
-      // return Icons.inventory_2;
+      case 'Top Product Code':
+      case 'Top Product Name':
+        return Icons.star;
+      case 'Returns Today':
+      case 'Returns Value':
+        return Icons.undo;
+      case 'Returns Rate':
+      case 'Discount Share':
+        return Icons.percent;
+      case 'Low Inventory Count':
+        return Icons.inventory_2;
       default:
         return Icons.insert_chart;
     }
@@ -168,13 +172,17 @@ class ApiService {
         return Colors.blue;
       case 'Avg Basket Size':
         return Colors.indigo;
-      // case 'Top Product Code':
-      // case 'Top Product Name':
-      //  return Colors.amber;
-      //case 'Returns Today':
-      //  return Colors.redAccent;
-      // case 'Low Inventory Count':
-      //   return Colors.orange;
+      case 'Top Product Code':
+      case 'Top Product Name':
+        return Colors.amber;
+      case 'Returns Today':
+      case 'Returns Value':
+      case 'Returns Rate':
+        return Colors.redAccent;
+      case 'Discount Share':
+        return Colors.deepPurple;
+      case 'Low Inventory Count':
+        return Colors.orange;
       default:
         return Colors.teal;
     }
