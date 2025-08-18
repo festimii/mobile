@@ -141,48 +141,23 @@ public class DashboardService {
 
         // ---- grouped metrics with sub-metrics ----
         List<Metric> metrics = List.of(
-                m("Cutoff Hour", asString(metricsRow, "CutoffHour", "")),
-
                 m("Total Revenue", compactFromMap(metricsRow, "TotalRevenue"), List.of(
-                        m("Vs Yesterday", compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
-                        m("Vs PY",        compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
-                        m("PY",           compactFromMap(metricsRow, "TotalRevenuePY")),
-                        m("Yesterday",    compactFromMap(metricsRow, "RevenueYesterday"))
+                        m("VS Dje", compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
+                        m("Vs Viti Kaluar",        compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
+                        m("Total Viti Kaluar",           compactFromMap(metricsRow, "TotalRevenuePY")),
+                        m("Dje",    compactFromMap(metricsRow, "RevenueYesterday")),
+                        m("Top Pika",    asString(metricsRow, "TopStoreName", "")),
+                        m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue")),
+                        m("Total Peek",  asString(metricsRow, "PeakHour", ""))
+                        )),
+
+                m("Kuponat", compactFromMap(metricsRow, "Transactions"), List.of(
+                        m("Viti Kaluar", compactFromMap(metricsRow, "TransactionsPY"))
                 )),
 
-                m("Transactions", compactFromMap(metricsRow, "Transactions"), List.of(
-                        m("PY", compactFromMap(metricsRow, "TransactionsPY"))
-                )),
-
-                m("Avg Basket Size", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
-                        m("PY", compactFromMap(metricsRow, "AvgBasketSizePY"))
-                )),
-
-                m("Top Product", "", List.of(
-                        m("Code", asString(metricsRow, "TopProductCode", "")),
-                        m("Name", asString(metricsRow, "TopProductName", ""))
-                )),
-
-                m("Top Store", "", List.of(
-                        m("OE",      asString(metricsRow, "TopStoreOE", "")),
-                        m("Name",    asString(metricsRow, "TopStoreName", "")),
-                        m("Revenue", compactFromMap(metricsRow, "TopStoreRevenue"))
-                )),
-
-                m("Returns", "", List.of(
-                        m("Today", compactFromMap(metricsRow, "ReturnsToday")),
-                        m("Value", compactFromMap(metricsRow, "ReturnsValue")),
-                        m("Rate",  compactFromMap(metricsRow, "ReturnsRatePct") + "%")
-                )),
-
-                m("Discount Share", compactFromMap(metricsRow, "DiscountSharePct") + "%"),
-
-                m("Peak Hour", "", List.of(
-                        m("Hour",  asString(metricsRow, "PeakHour", "")),
-                        m("Label", asString(metricsRow, "PeakHourLabel", ""))
-                )),
-
-                m("Low Inventory Count", compactFromMap(metricsRow, "LowInventoryCount"))
+                m("Shporta Mesatare", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
+                        m("Viti Kaluar", compactFromMap(metricsRow, "AvgBasketSizePY"))
+                ))
         );
 
         // Daily series labels as day-of-week: Mon, Tue, ...
