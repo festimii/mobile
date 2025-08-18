@@ -6,8 +6,25 @@ class SummaryMetric {
   final String value;
   final IconData icon;
   final Color color;
+  final List<SubMetric> subMetrics;
 
   SummaryMetric({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.subMetrics = const [],
+  });
+}
+
+/// Sub-metric for detailed KPI information.
+class SubMetric {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  SubMetric({
     required this.title,
     required this.value,
     required this.icon,

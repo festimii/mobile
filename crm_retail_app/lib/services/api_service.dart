@@ -55,12 +55,23 @@ class ApiService {
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final metricsJson = data['metrics'] as List<dynamic>? ?? [];
     return metricsJson.map((e) {
-      final title = e['title'] as String;
+      final title = e['name'] as String;
+      final subs = (e['subMetrics'] as List<dynamic>? ?? [])
+          .map(
+            (s) => SubMetric(
+              title: s['name'] as String,
+              value: s['value'].toString(),
+              icon: _iconForTitle(s['name'] as String),
+              color: _colorForTitle(s['name'] as String),
+            ),
+          )
+          .toList();
       return SummaryMetric(
         title: title,
         value: e['value'].toString(),
         icon: _iconForTitle(title),
         color: _colorForTitle(title),
+        subMetrics: subs,
       );
     }).toList();
   }
@@ -74,12 +85,23 @@ class ApiService {
 
     final metrics =
         (data['metrics'] as List<dynamic>? ?? []).map((e) {
-          final title = e['title'] as String;
+          final title = e['name'] as String;
+          final subs = (e['subMetrics'] as List<dynamic>? ?? [])
+              .map(
+                (s) => SubMetric(
+                  title: s['name'] as String,
+                  value: s['value'].toString(),
+                  icon: _iconForTitle(s['name'] as String),
+                  color: _colorForTitle(s['name'] as String),
+                ),
+              )
+              .toList();
           return SummaryMetric(
             title: title,
             value: e['value'].toString(),
             icon: _iconForTitle(title),
             color: _colorForTitle(title),
+            subMetrics: subs,
           );
         }).toList();
 
