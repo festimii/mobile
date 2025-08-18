@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'tabs/home_tab.dart';
 import '../../models/dashboard_models.dart';
 
 class MetricDetailScreen extends StatelessWidget {
@@ -10,7 +9,7 @@ class MetricDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final subKpis = _shortKpis[metric.title] ?? [];
+    final subKpis = metric.subMetrics;
 
     return Scaffold(
       appBar: AppBar(title: Text(metric.title)),
@@ -64,7 +63,7 @@ class MetricDetailScreen extends StatelessWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(kpi.icon, color: metric.color, size: 28),
+                                Icon(kpi.icon, color: kpi.color, size: 28),
                                 const SizedBox(height: 10),
                                 Text(
                                   kpi.title,
@@ -94,67 +93,3 @@ class MetricDetailScreen extends StatelessWidget {
   }
 }
 
-class SubKpi {
-  final String title;
-  final String value;
-  final IconData icon;
-
-  SubKpi(this.title, this.value, this.icon);
-}
-
-Map<String, List<SubKpi>> _shortKpis = {
-  'Total Revenue': [
-    SubKpi('Vs Last Week', '+12%', Icons.trending_up),
-    SubKpi('Top Store', 'VFS3', Icons.store),
-    SubKpi('Rev / Tx', '€14.71', Icons.calculate),
-    SubKpi('Promos', '18%', Icons.local_offer),
-  ],
-  'Transactions': [
-    SubKpi('Per Hour', '102', Icons.access_time),
-    SubKpi('Peak Time', '15:00', Icons.schedule),
-    SubKpi('Online %', '28%', Icons.wifi),
-    SubKpi('Repeat', '36%', Icons.repeat),
-  ],
-  'Avg Basket Size': [
-    SubKpi('Trend', '+5.2%', Icons.trending_up),
-    SubKpi('Add-On', 'Bread', Icons.add),
-    SubKpi('> €20', '23%', Icons.shopping_cart),
-    SubKpi('By Cat.', '€18.10', Icons.category),
-  ],
-  'Top Product Code': [
-    SubKpi('Sold Today', '221', Icons.check_circle),
-    SubKpi('Revenue %', '8.4%', Icons.pie_chart),
-    SubKpi('Attach Rate', '41%', Icons.link),
-    SubKpi('Stock Left', '52', Icons.inventory),
-  ],
-  'Top Product Name': [
-    SubKpi('Sold Today', '221', Icons.check_circle),
-    SubKpi('Revenue %', '8.4%', Icons.pie_chart),
-    SubKpi('Attach Rate', '41%', Icons.link),
-    SubKpi('Stock Left', '52', Icons.inventory),
-  ],
-  'Returns Today': [
-    SubKpi('Return %', '1.4%', Icons.percent),
-    SubKpi('Top Item', 'Milk 1L', Icons.assignment_return),
-    SubKpi('Damage', '46%', Icons.report_problem),
-    SubKpi('Exchanges', '29%', Icons.swap_horiz),
-  ],
-  'Returns Value': [
-    SubKpi('Return %', '1.4%', Icons.percent),
-    SubKpi('Top Item', 'Milk 1L', Icons.assignment_return),
-    SubKpi('Damage', '46%', Icons.report_problem),
-    SubKpi('Exchanges', '29%', Icons.swap_horiz),
-  ],
-  'Returns Rate': [
-    SubKpi('Return %', '1.4%', Icons.percent),
-    SubKpi('Top Item', 'Milk 1L', Icons.assignment_return),
-    SubKpi('Damage', '46%', Icons.report_problem),
-    SubKpi('Exchanges', '29%', Icons.swap_horiz),
-  ],
-  'Low Inventory Count': [
-    SubKpi('Days Left', '3.1d', Icons.calendar_today),
-    SubKpi('Daily Sales', '18', Icons.bar_chart),
-    SubKpi('Lead Time', '5d', Icons.access_time_filled),
-    SubKpi('Restock', 'Pending', Icons.timelapse),
-  ],
-};
