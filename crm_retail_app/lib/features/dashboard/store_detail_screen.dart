@@ -23,7 +23,13 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.sales.store)),
+      appBar: AppBar(
+        title: Text(
+          widget.sales.store,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
       body: FutureBuilder<StoreKpiDetail?>(
         future: _kpiFuture,
         builder: (context, snap) {
@@ -36,7 +42,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 
           final data = snap.data!;
 
-          // ===== Data for comparison table =====
+          // ===== Data for comparison =====
           final comparisonMetrics = <_ComparisonMetric>[
             _ComparisonMetric(
               'Shitje',
@@ -90,87 +96,92 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             ),
           ];
 
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: ListView(
-              children: [
-                _buildComparisonSection(context, comparisonMetrics),
-                if (inventoryKpis.isNotEmpty)
-                  _buildSection(context, '📦 Inventory KPIs', inventoryKpis),
-                _buildSection(context, '🧮 Operational Metrics', opsKpis),
+          // ===== Single scrollable with slivers =====
+          return CustomScrollView(
+            slivers: [
+              _sliverHeader('📈 Vit per Vit Krahasimi'),
+              _sliverGridComparison(comparisonMetrics, crossAxisCount: 2),
+
+              if (inventoryKpis.isNotEmpty) ...[
+                _sliverHeader('📦 Inventory KPIs'),
+                _sliverGridKpis(inventoryKpis, crossAxisCount: 2),
               ],
-            ),
+
+              _sliverHeader('🧮 Operational Metrics'),
+              _sliverGridKpis(opsKpis, crossAxisCount: 2),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
           );
         },
       ),
     );
   }
 
-  // ===== UI helpers =====
+  // ===== Sliver builders =====
 
-  Widget _buildComparisonSection(
-    BuildContext context,
-    List<_ComparisonMetric> metrics,
-  ) {
+  SliverToBoxAdapter _sliverHeader(String title) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '📈 Vit per Vit Krahasimi',
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.primaryColor,
           ),
         ),
-        const SizedBox(height: 12),
-        GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
-          children: metrics.map((m) => _ComparisonCard(metric: m)).toList(),
-        ),
-        const SizedBox(height: 28),
-      ],
+      ),
     );
   }
 
-  Widget _buildSection(
-    BuildContext context,
-    String title,
-    List<_KpiTile> kpis,
-  ) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.primaryColor,
-          ),
+  SliverPadding _sliverGridComparison(
+    List<_ComparisonMetric> items, {
+    int crossAxisCount = 2,
+  }) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => _ComparisonCard(metric: items[i]),
+          childCount: items.length,
         ),
-        const SizedBox(height: 12),
-        GridView.count(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          crossAxisCount: 2,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.1,
-          children: kpis.map((kpi) => _KpiCard(kpi: kpi)).toList(),
+          childAspectRatio: 1.15,
         ),
-        const SizedBox(height: 28),
-      ],
+      ),
+    );
+  }
+
+  SliverPadding _sliverGridKpis(
+    List<_KpiTile> items, {
+    int crossAxisCount = 2,
+  }) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => _KpiCard(kpi: items[i]),
+          childCount: items.length,
+        ),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.15,
+        ),
+      ),
     );
   }
 }
 
-// ===== Small value objects / widgets =====
+// ===== Value objects / widgets =====
 
 class _ComparisonMetric {
   final String label;
@@ -197,41 +208,51 @@ class _ComparisonCard extends StatelessWidget {
     final theme = Theme.of(context);
     final diff = metric.current - metric.previous;
     final pct = _pct(metric.current, metric.previous);
-    final color = diff >= 0 ? Colors.green : Colors.red;
-    String format(num v) => metric.isCurrency ? _eur(v) : v.toStringAsFixed(0);
+    final isUp = diff >= 0;
+    final color = isUp ? Colors.green : Colors.red;
+
+    String fmt(num v) => metric.isCurrency ? _eur(v) : v.toStringAsFixed(0);
 
     return Card(
-      elevation: 3,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(metric.icon, color: theme.primaryColor, size: 28),
+            Icon(metric.icon, color: theme.primaryColor, size: 24),
             const SizedBox(height: 8),
             Text(
               metric.label,
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              format(metric.current),
+              fmt(metric.current),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Prev: ${format(metric.previous)}',
+              'Prev: ${fmt(metric.previous)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 4),
             Text(
-              '${diff >= 0 ? '+' : ''}${format(diff)} (${pct.toStringAsFixed(1)}%)',
+              '${isUp ? '+' : ''}${fmt(diff)} (${pct.toStringAsFixed(1)}%)',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.bold,
@@ -259,34 +280,35 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Note: avoid Flexible here inside a Column; rely on maxLines/ellipsis instead
     return Card(
-      elevation: 3,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(kpi.icon, color: theme.primaryColor, size: 28),
-            const SizedBox(height: 10),
+            Icon(kpi.icon, color: theme.primaryColor, size: 24),
+            const SizedBox(height: 8),
             Text(
               kpi.title,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 6),
-            Flexible(
-              child: Text(
-                kpi.value,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            Text(
+              kpi.value,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
