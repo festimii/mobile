@@ -1,58 +1,110 @@
 // src/main/java/com/vivacrm/crm/service/StoreKpiService.java
 package com.vivacrm.crm.service;
 
+import com.vivacrm.crm.service.dto.StoreKpi;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import com.vivacrm.crm.service.dto.StoreKpi;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class StoreKpiService {
 
-    private final JdbcTemplate jdbc;
+    private static final String CACHE_NAME = "storeKpi";
 
-    public StoreKpiService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbc) {
+    private final JdbcTemplate jdbc;
+    private final CacheManager cacheManager;
+    private final AtomicBoolean cacheWarmed = new AtomicBoolean(false);
+
+    public StoreKpiService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbc,
+                           CacheManager cacheManager) {
         jdbc.setResultsMapCaseInsensitive(true);
         this.jdbc = jdbc;
+        this.cacheManager = cacheManager;
     }
 
-    /**
-     * Caches the result by storeId in the in-memory ConcurrentMap cache named "storeKpi".
-     * Null results are not cached.
-     */
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = "storeKpi", key = "#storeId", unless = "#result == null")
     public StoreKpi getStoreKpi(int storeId) {
-        // If your proc supports it, prefer parameterized: "EXEC SP_GetStoreKPI @StoreId = ?"
-        // return jdbc.queryForObject("EXEC SP_GetStoreKPI @StoreId = ?", mapper, storeId);
+        warmCacheIfNeeded();
+
+        StoreKpi fromCache = cacheGet(storeId);
+        if (fromCache != null) return fromCache;
+
+        // Fallback: fetch and cache only the requested store
         List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
         Map<String, Object> row = rows.stream()
                 .filter(r -> Objects.toString(r.get("StoreId"), "").equals(String.valueOf(storeId)))
                 .findFirst()
                 .orElse(Collections.emptyMap());
-        return mapRow(row);
+
+        StoreKpi kpi = mapRow(row);
+        int id = toInt(row.get("StoreId"));
+        if (kpi != null && id != 0) cachePut(id, kpi);
+        return kpi;
     }
 
-    /** Evict a single store’s cached KPI (call after writing new data for that store). */
-    @CacheEvict(cacheNames = "storeKpi", key = "#storeId")
-    public void evictStoreKpi(int storeId) {
-        // no-op; annotation performs eviction
+    @Scheduled(fixedRateString = "PT20M", initialDelayString = "PT20M")
+    @Transactional(readOnly = true)
+    public void scheduledRefreshAllStores() {
+        refreshAllStores();
     }
 
-    /** Evict all cached KPIs (call after bulk loads/ETL). */
-    @CacheEvict(cacheNames = "storeKpi", allEntries = true)
-    public void evictAllStoreKpi() {
-        // no-op; annotation performs eviction
+    @Transactional(readOnly = true)
+    public void refreshAllStores() {
+        Cache cache = getCache();
+        if (cache == null) return;
+
+        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+        cache.clear();
+        for (Map<String, Object> r : rows) {
+            StoreKpi kpi = mapRow(r);
+            int id = toInt(r.get("StoreId"));
+            if (kpi != null && id != 0) cache.put(id, kpi);
+        }
+        cacheWarmed.set(true);
+    }
+
+    @CacheEvict(cacheNames = CACHE_NAME, key = "#storeId")
+    public void evictStoreKpi(int storeId) {}
+
+    @CacheEvict(cacheNames = CACHE_NAME, allEntries = true)
+    public void evictAllStoreKpi() { cacheWarmed.set(false); }
+
+    /* ---------------------- internals ---------------------- */
+
+    private void warmCacheIfNeeded() {
+        if (cacheWarmed.get()) return;
+        if (cacheWarmed.compareAndSet(false, true)) {
+            List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+            Cache cache = getCache();
+            if (cache == null) return;
+
+            for (Map<String, Object> r : rows) {
+                StoreKpi kpi = mapRow(r);
+                int id = toInt(r.get("StoreId"));
+                if (kpi != null && id != 0) cache.put(id, kpi);
+            }
+        }
+    }
+
+    private Cache getCache() { return cacheManager.getCache(CACHE_NAME); }
+
+    private StoreKpi cacheGet(int storeId) {
+        Cache.ValueWrapper w = getCache() == null ? null : getCache().get(storeId);
+        return w == null ? null : (StoreKpi) w.get();
+    }
+
+    private void cachePut(int storeId, StoreKpi kpi) {
+        Cache cache = getCache();
+        if (cache != null) cache.put(storeId, kpi);
     }
 
     private StoreKpi mapRow(Map<String, Object> r) {
