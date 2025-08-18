@@ -10,9 +10,9 @@ import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.scheduling.annotation.Scheduled;      // <-- add
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +28,7 @@ public class DashboardService {
     private static final BigDecimal THOUSAND = new BigDecimal("1000");
     private static final BigDecimal MILLION  = new BigDecimal("1000000");
     private static final BigDecimal BILLION  = new BigDecimal("1000000000");
+    private static final BigDecimal FOUR_HUNDRED = new BigDecimal("400");
 
     private static final DateTimeFormatter DOW_FMT = DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH);
     private static final DateTimeFormatter[] DATE_PARSERS = new DateTimeFormatter[] {
@@ -59,28 +60,28 @@ public class DashboardService {
                 .withProcedureName("SP_GetDashboardData")
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
-                        new org.springframework.jdbc.core.SqlOutParameter("CutoffHour",          Types.INTEGER),
-                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenue",        Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("Transactions",        Types.BIGINT),
-                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSize",       Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenuePY",      Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("TransactionsPY",      Types.BIGINT),
-                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSizePY",     Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("RevenueYesterday",    Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("CutoffHour",            Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenue",          Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("Transactions",          Types.BIGINT),
+                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSize",         Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenuePY",        Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TransactionsPY",        Types.BIGINT),
+                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSizePY",       Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("RevenueYesterday",      Types.DECIMAL),
                         new org.springframework.jdbc.core.SqlOutParameter("RevenueVsYesterdayPct", Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("RevenueVsPYPct",     Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopProductCode",      Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopProductName",      Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreOE",          Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreName",        Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreRevenue",     Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsToday",        Types.INTEGER),
-                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsValue",        Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsRatePct",      Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("DiscountSharePct",    Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("PeakHour",            Types.INTEGER),
-                        new org.springframework.jdbc.core.SqlOutParameter("PeakHourLabel",       Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("LowInventoryCount",   Types.INTEGER)
+                        new org.springframework.jdbc.core.SqlOutParameter("RevenueVsPYPct",        Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopProductCode",        Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopProductName",        Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreOE",            Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreName",          Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreRevenue",       Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsToday",          Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsValue",          Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsRatePct",        Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("DiscountSharePct",      Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("PeakHour",              Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("PeakHourLabel",         Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("LowInventoryCount",     Types.INTEGER)
                 );
     }
 
@@ -100,20 +101,21 @@ public class DashboardService {
 
     /** Evict cached payload (manual reset). */
     @CacheEvict(value = "dashboard", key = "'metrics'")
-    public void resetMetrics() {
-        // no-op; annotation performs eviction
-    }
-    /** Auto-refresh every 20 minutes (ISO-8601 duration). */
+    public void resetMetrics() { /* no-op */ }
+
+    /** Auto-refresh every 20 minutes. */
+    @Scheduled(fixedDelay = 20 * 60 * 1000L)
     @Transactional(readOnly = true)
     public void refreshMetricsEvery20Minutes() {
-        refreshMetrics(); // @CachePut updates the "dashboard::metrics" entry
+        refreshMetrics();
     }
-    // ----------------- internal loader -----------------
 
+    // ----------------- internal loader -----------------
     @Transactional(readOnly = true)
     protected DashboardPayload loadMetrics(LocalDate date) {
         MapSqlParameterSource in = new MapSqlParameterSource();
-        // If your proc expects a date: in.addValue("p_Date", java.sql.Date.valueOf(date));
+        // If your proc expects a date param, add it here:
+        // in.addValue("p_Date", java.sql.Date.valueOf(date));
 
         List<Map<String, Object>> rs1 = Collections.emptyList();
         List<Map<String, Object>> rs2 = Collections.emptyList();
@@ -137,29 +139,50 @@ public class DashboardService {
             }
         }
 
+        // ---- grouped metrics with sub-metrics ----
         List<Metric> metrics = List.of(
-                new Metric("Cutoff Hour",           asString(metricsRow, "CutoffHour", "")),
-                new Metric("Total Revenue",         compactFromMap(metricsRow, "TotalRevenue")),
-                new Metric("Transactions",          compactFromMap(metricsRow, "Transactions")),
-                new Metric("Avg Basket Size",       compactFromMap(metricsRow, "AvgBasketSize")),
-                new Metric("Total Revenue PY",      compactFromMap(metricsRow, "TotalRevenuePY")),
-                new Metric("Transactions PY",      compactFromMap(metricsRow, "TransactionsPY")),
-                new Metric("Avg Basket Size PY",   compactFromMap(metricsRow, "AvgBasketSizePY")),
-                new Metric("Revenue Yesterday",    compactFromMap(metricsRow, "RevenueYesterday")),
-                new Metric("Revenue Vs Yesterday",  compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
-                new Metric("Revenue Vs PY",         compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
-                new Metric("Top Product Code",      asString(metricsRow, "TopProductCode", "")),
-                new Metric("Top Product Name",      asString(metricsRow, "TopProductName", "")),
-                new Metric("Top Store OE",          asString(metricsRow, "TopStoreOE", "")),
-                new Metric("Top Store Name",        asString(metricsRow, "TopStoreName", "")),
-                new Metric("Top Store Revenue",     compactFromMap(metricsRow, "TopStoreRevenue")),
-                new Metric("Returns Today",         compactFromMap(metricsRow, "ReturnsToday")),
-                new Metric("Returns Value",         compactFromMap(metricsRow, "ReturnsValue")),
-                new Metric("Returns Rate",          compactFromMap(metricsRow, "ReturnsRatePct") + "%"),
-                new Metric("Discount Share",        compactFromMap(metricsRow, "DiscountSharePct") + "%"),
-                new Metric("Peak Hour",             asString(metricsRow, "PeakHour", "")),
-                new Metric("Peak Hour Label",       asString(metricsRow, "PeakHourLabel", "")),
-                new Metric("Low Inventory Count",   compactFromMap(metricsRow, "LowInventoryCount"))
+                m("Cutoff Hour", asString(metricsRow, "CutoffHour", "")),
+
+                m("Total Revenue", compactFromMap(metricsRow, "TotalRevenue"), List.of(
+                        m("Vs Yesterday", compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
+                        m("Vs PY",        compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
+                        m("PY",           compactFromMap(metricsRow, "TotalRevenuePY")),
+                        m("Yesterday",    compactFromMap(metricsRow, "RevenueYesterday"))
+                )),
+
+                m("Transactions", compactFromMap(metricsRow, "Transactions"), List.of(
+                        m("PY", compactFromMap(metricsRow, "TransactionsPY"))
+                )),
+
+                m("Avg Basket Size", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
+                        m("PY", compactFromMap(metricsRow, "AvgBasketSizePY"))
+                )),
+
+                m("Top Product", "", List.of(
+                        m("Code", asString(metricsRow, "TopProductCode", "")),
+                        m("Name", asString(metricsRow, "TopProductName", ""))
+                )),
+
+                m("Top Store", "", List.of(
+                        m("OE",      asString(metricsRow, "TopStoreOE", "")),
+                        m("Name",    asString(metricsRow, "TopStoreName", "")),
+                        m("Revenue", compactFromMap(metricsRow, "TopStoreRevenue"))
+                )),
+
+                m("Returns", "", List.of(
+                        m("Today", compactFromMap(metricsRow, "ReturnsToday")),
+                        m("Value", compactFromMap(metricsRow, "ReturnsValue")),
+                        m("Rate",  compactFromMap(metricsRow, "ReturnsRatePct") + "%")
+                )),
+
+                m("Discount Share", compactFromMap(metricsRow, "DiscountSharePct") + "%"),
+
+                m("Peak Hour", "", List.of(
+                        m("Hour",  asString(metricsRow, "PeakHour", "")),
+                        m("Label", asString(metricsRow, "PeakHourLabel", ""))
+                )),
+
+                m("Low Inventory Count", compactFromMap(metricsRow, "LowInventoryCount"))
         );
 
         // Daily series labels as day-of-week: Mon, Tue, ...
@@ -171,35 +194,35 @@ public class DashboardService {
     }
 
     // ----------------- helpers -----------------
-// ---- hourly compression helpers ----
-    private static final BigDecimal FOUR_HUNDRED = new BigDecimal("400");
-
-    private static final class HourBin {
-        final int hour;         // 0..23
-        final String label;     // original label e.g. "5h", "05:00"
-        BigDecimal value;       // mutable
-        HourBin(int hour, String label, BigDecimal value) {
-            this.hour = hour;
-            this.label = label;
-            this.value = value;
-        }
+    private static Metric m(String name, String value) {
+        return new Metric(name, value);
+    }
+    private static Metric m(String name, String value, List<Metric> subs) {
+        return new Metric(name, value, subs);
     }
 
-    private static int parseHour(String label) {
-        if (label == null) return -1;
-        // accept "5h", "05", "05:00", "5", etc.
-        var m = java.util.regex.Pattern.compile("(\\d{1,2})").matcher(label);
-        if (m.find()) {
-            int h = Integer.parseInt(m.group(1));
-            return (h >= 0 && h <= 23) ? h : -1;
-        }
-        return -1;
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> getList(Map<String, Object> out, String primaryKey, String altKey) {
+        Object v = out.get(primaryKey);
+        if (v instanceof List<?> l && !l.isEmpty() && l.get(0) instanceof Map)
+            return (List<Map<String, Object>>) v;
+        v = out.get(altKey);
+        if (v instanceof List<?> l2 && !l2.isEmpty() && l2.get(0) instanceof Map)
+            return (List<Map<String, Object>>) v;
+        return Collections.emptyList();
     }
 
-    /**
-     * Removes zero-amount hours and merges any hour with amount <= 400 into the next hour
-     * (or previous kept hour if it's the last). Returns formatted Points.
-     */
+    private static List<Point> mapDailyPointsWithDOW(List<Map<String, Object>> rows, String dateCol, String amtCol) {
+        List<Point> out = new ArrayList<>(rows.size());
+        for (Map<String, Object> r : rows) {
+            String raw = String.valueOf(r.getOrDefault(dateCol, ""));
+            String dow = toDayOfWeek(raw);
+            BigDecimal amount = toDecimal(r.get(amtCol));
+            out.add(new Point(dow, amount, formatCompact(amount)));
+        }
+        return out;
+    }
+
     private static List<Point> mapHourlyCompressed(List<Map<String, Object>> rows, String labelCol, String amtCol) {
         if (rows == null || rows.isEmpty()) return List.of();
 
@@ -229,23 +252,19 @@ public class DashboardService {
             HourBin cur = nonZero.get(i);
 
             if (cur.value.compareTo(FOUR_HUNDRED) <= 0) {
-                // merge into next if exists, else into previous kept if any
                 if (i + 1 < nonZero.size()) {
                     nonZero.get(i + 1).value = nonZero.get(i + 1).value.add(cur.value);
                 } else if (!kept.isEmpty()) {
                     kept.get(kept.size() - 1).value = kept.get(kept.size() - 1).value.add(cur.value);
                 } else {
-                    // edge: only one tiny bucket exists; keep it as-is
-                    kept.add(cur);
+                    kept.add(cur); // single tiny bucket edge-case
                 }
-                // do not keep cur as its own bar
-                continue;
+                continue; // drop current as standalone
             }
 
             kept.add(cur);
         }
 
-        // Build Points (label stays with the kept/recipient hour)
         List<Point> out = new ArrayList<>(kept.size());
         for (HourBin b : kept) {
             out.add(new Point(b.label, b.value, formatCompact(b.value)));
@@ -253,42 +272,33 @@ public class DashboardService {
         return out;
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> getList(Map<String, Object> out, String primaryKey, String altKey) {
-        Object v = out.get(primaryKey);
-        if (v instanceof List<?> l && !l.isEmpty() && l.get(0) instanceof Map) return (List<Map<String, Object>>) v;
-        v = out.get(altKey);
-        if (v instanceof List<?> l2 && !l2.isEmpty() && l2.get(0) instanceof Map) return (List<Map<String, Object>>) v;
-        return Collections.emptyList();
+    private static class HourBin {
+        final int hour;
+        final String label;
+        BigDecimal value;
+        HourBin(int hour, String label, BigDecimal value) {
+            this.hour = hour;
+            this.label = label;
+            this.value = value;
+        }
     }
 
-    private static List<Point> mapDailyPointsWithDOW(List<Map<String, Object>> rows, String dateCol, String amtCol) {
-        List<Point> out = new ArrayList<>(rows.size());
-        for (Map<String, Object> r : rows) {
-            String raw = String.valueOf(r.getOrDefault(dateCol, ""));
-            String dow = toDayOfWeek(raw);
-            BigDecimal amount = toDecimal(r.get(amtCol));
-            out.add(new Point(dow, amount, formatCompact(amount)));
+    private static int parseHour(String label) {
+        if (label == null) return -1;
+        var m = java.util.regex.Pattern.compile("(\\d{1,2})").matcher(label);
+        if (m.find()) {
+            int h = Integer.parseInt(m.group(1));
+            return (h >= 0 && h <= 23) ? h : -1;
         }
-        return out;
-    }
-
-    private static List<Point> mapPoints(List<Map<String, Object>> rows, String labelCol, String amtCol) {
-        List<Point> out = new ArrayList<>(rows.size());
-        for (Map<String, Object> r : rows) {
-            String label = String.valueOf(r.getOrDefault(labelCol, ""));
-            BigDecimal amount = toDecimal(r.get(amtCol));
-            out.add(new Point(label, amount, formatCompact(amount)));
-        }
-        return out;
+        return -1;
     }
 
     private static List<StoreCompare> mapStores(List<Map<String, Object>> rows, String storeCol,
                                                 String lastYearCol, String thisYearCol) {
         List<StoreCompare> out = new ArrayList<>(rows.size());
         for (Map<String, Object> r : rows) {
-            String store = String.valueOf(r.getOrDefault(storeCol, ""));
-            store = store.trim();             BigDecimal lastYear = toDecimal(r.get(lastYearCol));
+            String store = String.valueOf(r.getOrDefault(storeCol, "")).trim();
+            BigDecimal lastYear = toDecimal(r.get(lastYearCol));
             BigDecimal thisYear = toDecimal(r.get(thisYearCol));
             out.add(new StoreCompare(
                     store,
@@ -303,7 +313,7 @@ public class DashboardService {
         if (dateText == null || dateText.isBlank()) return "";
         for (DateTimeFormatter fmt : DATE_PARSERS) {
             try {
-                return DOW_FMT.format(java.time.LocalDate.parse(dateText.trim(), fmt));
+                return DOW_FMT.format(LocalDate.parse(dateText.trim(), fmt));
             } catch (DateTimeParseException ignore) {}
         }
         return dateText;
