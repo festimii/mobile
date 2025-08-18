@@ -87,35 +87,40 @@ class SummaryCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (metric.subMetrics.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Divider(),
-                ...metric.subMetrics.map((sub) {
-                  final subColor = _valueColor(sub.value, theme);
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Row(
-                      children: [
-                        Icon(sub.icon, size: 16, color: sub.color),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            sub.title,
-                            style: theme.textTheme.bodySmall,
+              ...(() {
+                final percentSubs =
+                    metric.subMetrics.where((s) => s.value.contains('%')).toList();
+                if (percentSubs.isEmpty) return [];
+                return [
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  ...percentSubs.map((sub) {
+                    final subColor = _valueColor(sub.value, theme);
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(sub.icon, size: 16, color: sub.color),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              sub.title,
+                              style: theme.textTheme.bodySmall,
+                            ),
                           ),
-                        ),
-                        Text(
-                          sub.value,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: subColor,
+                          Text(
+                            sub.value,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: subColor,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ],
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ];
+              }()),
             ],
           ),
         ),
