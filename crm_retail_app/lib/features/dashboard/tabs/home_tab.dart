@@ -639,11 +639,6 @@ class _FilterableAnimatedStoreSalesTableState
   void _open(StoreSales s) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => StoreSalesTable(salesData: [s])),
-    ); // Optional: quick preview (replace with detail screen if desired)
-    // Preferred: go to detail screen
-    Navigator.push(
-      context,
       MaterialPageRoute(builder: (_) => StoreDetailScreen(sales: s)),
     );
   }
