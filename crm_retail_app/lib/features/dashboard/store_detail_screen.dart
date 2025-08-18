@@ -43,18 +43,18 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           // ===== Data for comparison table =====
           final comparisonMetrics = <_ComparisonMetric>[
             _ComparisonMetric(
-              'Revenue',
+              'Shitje',
               data.revenueToday,
               data.revenuePY,
               isCurrency: true,
             ),
             _ComparisonMetric(
-              'Transactions',
+              'Kupona',
               data.txToday.toDouble(),
               data.txPY.toDouble(),
             ),
             _ComparisonMetric(
-              'Avg Basket',
+              'Shporta mesatare',
               data.avgBasketToday,
               data.avgBasketPY,
               isCurrency: true,
@@ -121,7 +121,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '📈 Year-over-Year Comparison',
+          '📈 Vit per Vit Krahasimi',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.primaryColor,
@@ -133,33 +133,33 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           child: DataTable(
             columns: const [
               DataColumn(label: Text('Metric')),
-              DataColumn(label: Text('Today')),
-              DataColumn(label: Text('Last Year')),
+              DataColumn(label: Text('Sod')),
+              DataColumn(label: Text('Viti i kaluar')),
               DataColumn(label: Text('Δ')),
               DataColumn(label: Text('%')),
             ],
-            rows: metrics.map((m) {
-              final diff = m.current - m.previous;
-              final pct = _pct(m.current, m.previous);
-              final color = diff >= 0 ? Colors.green : Colors.red;
-              return DataRow(cells: [
-                DataCell(Text(m.label)),
-                DataCell(Text(format(m, m.current))),
-                DataCell(Text(format(m, m.previous))),
-                DataCell(
-                  Text(
-                    format(m, diff),
-                    style: TextStyle(color: color),
-                  ),
-                ),
-                DataCell(
-                  Text(
-                    '${pct.toStringAsFixed(1)}%',
-                    style: TextStyle(color: color),
-                  ),
-                ),
-              ]);
-            }).toList(),
+            rows:
+                metrics.map((m) {
+                  final diff = m.current - m.previous;
+                  final pct = _pct(m.current, m.previous);
+                  final color = diff >= 0 ? Colors.green : Colors.red;
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(m.label)),
+                      DataCell(Text(format(m, m.current))),
+                      DataCell(Text(format(m, m.previous))),
+                      DataCell(
+                        Text(format(m, diff), style: TextStyle(color: color)),
+                      ),
+                      DataCell(
+                        Text(
+                          '${pct.toStringAsFixed(1)}%',
+                          style: TextStyle(color: color),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
           ),
         ),
         const SizedBox(height: 28),
