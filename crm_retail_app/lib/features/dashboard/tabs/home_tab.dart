@@ -93,16 +93,20 @@ class SalesBarChart extends StatelessWidget {
     }
   }
 
-  double _calcMaxY() {
+  // Calculates a rounded maximum value for the y-axis ticks.
+  double _calcBaseMaxY() {
     final maxVal = data.map((e) => e.sales).reduce(max);
     if (maxVal <= 0) return 0;
-    final magnitude = pow(10, maxVal.toInt().toString().length - 1).toDouble();
-    return ((maxVal / magnitude).ceil() * magnitude);
+    final magnitude =
+        pow(10, maxVal.toInt().toString().length - 1).toDouble();
+    return ((maxVal / magnitude).ceil() * magnitude).toDouble();
   }
 
   @override
   Widget build(BuildContext context) {
-    final maxY = _calcMaxY();
+    final baseMaxY = _calcBaseMaxY();
+    // Add headroom so the tallest bar doesn't clip the top labels.
+    final maxY = baseMaxY * 1.1;
     return BarChart(
       BarChartData(
         maxY: maxY,
@@ -124,7 +128,7 @@ class SalesBarChart extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 30,
-              interval: maxY == 0 ? 1 : maxY / 4,
+              interval: baseMaxY == 0 ? 1 : baseMaxY / 4,
               getTitlesWidget:
                   (value, _) => Text(
                     _formatValue(value),
