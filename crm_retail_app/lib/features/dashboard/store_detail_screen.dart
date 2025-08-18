@@ -40,58 +40,28 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 
           final data = snap.data!;
 
-          // ===== Derived metrics (safe guards for division by zero) =====
-          double _pct(double cur, double py) {
-            if (py == 0) return cur == 0 ? 0 : 100;
-            return ((cur - py) / py) * 100.0;
-          }
+          // ===== Data for comparison table =====
+          final comparisonMetrics = <_ComparisonMetric>[
+            _ComparisonMetric(
+              'Revenue',
+              data.revenueToday,
+              data.revenuePY,
+              isCurrency: true,
+            ),
+            _ComparisonMetric(
+              'Transactions',
+              data.txToday.toDouble(),
+              data.txPY.toDouble(),
+            ),
+            _ComparisonMetric(
+              'Avg Basket',
+              data.avgBasketToday,
+              data.avgBasketPY,
+              isCurrency: true,
+            ),
+          ];
 
-          final revenuePct = _pct(data.revenueToday, data.revenuePY);
-          final txPct = _pct(data.txToday.toDouble(), data.txPY.toDouble());
-          final revenueDiff = data.revenueToday - data.revenuePY;
           final txDiff = data.txToday - data.txPY;
-          final avgBasketDiff = data.avgBasketToday - data.avgBasketPY;
-
-          // ===== KPI groups =====
-          final salesKpis = <_KpiTile>[
-            _KpiTile('Revenue Today', _eur(data.revenueToday), Icons.today),
-            _KpiTile('Revenue PY', _eur(data.revenuePY), Icons.calendar_today),
-            _KpiTile(
-              'Revenue %',
-              '${revenuePct.toStringAsFixed(1)}%',
-              revenuePct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-            ),
-            _KpiTile(
-              'Revenue Δ',
-              _eur(revenueDiff),
-              revenueDiff >= 0 ? Icons.trending_up : Icons.trending_down,
-            ),
-          ];
-
-          final customerKpis = <_KpiTile>[
-            _KpiTile('Tx Today', '${data.txToday}', Icons.receipt_long),
-            _KpiTile('Tx PY', '${data.txPY}', Icons.history),
-            _KpiTile(
-              'Tx %',
-              '${txPct.toStringAsFixed(1)}%',
-              txPct >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-            ),
-            _KpiTile(
-              'Avg Basket Today',
-              _eur(data.avgBasketToday),
-              Icons.shopping_basket,
-            ),
-            _KpiTile(
-              'Avg Basket PY',
-              _eur(data.avgBasketPY),
-              Icons.shopping_basket_outlined,
-            ),
-            _KpiTile(
-              'Avg Basket Δ',
-              _eur(avgBasketDiff),
-              avgBasketDiff >= 0 ? Icons.trending_up : Icons.trending_down,
-            ),
-          ];
 
           final inventoryKpis = <_KpiTile>[
             if ((data.topArtCode ?? '').isNotEmpty)
@@ -125,8 +95,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             padding: const EdgeInsets.all(16),
             child: ListView(
               children: [
-                _buildSection(context, '📊 Sales KPIs', salesKpis),
-                _buildSection(context, '🛍️ Customer Behavior', customerKpis),
+                _buildComparisonSection(context, comparisonMetrics),
                 if (inventoryKpis.isNotEmpty)
                   _buildSection(context, '📦 Inventory KPIs', inventoryKpis),
                 _buildSection(context, '🧮 Operational Metrics', opsKpis),
@@ -139,6 +108,64 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   }
 
   // ===== UI helpers =====
+
+  Widget _buildComparisonSection(
+    BuildContext context,
+    List<_ComparisonMetric> metrics,
+  ) {
+    final theme = Theme.of(context);
+    String format(_ComparisonMetric m, num v) =>
+        m.isCurrency ? _eur(v) : v.toStringAsFixed(0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '📈 Year-over-Year Comparison',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.primaryColor,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('Metric')),
+              DataColumn(label: Text('Today')),
+              DataColumn(label: Text('Last Year')),
+              DataColumn(label: Text('Δ')),
+              DataColumn(label: Text('%')),
+            ],
+            rows: metrics.map((m) {
+              final diff = m.current - m.previous;
+              final pct = _pct(m.current, m.previous);
+              final color = diff >= 0 ? Colors.green : Colors.red;
+              return DataRow(cells: [
+                DataCell(Text(m.label)),
+                DataCell(Text(format(m, m.current))),
+                DataCell(Text(format(m, m.previous))),
+                DataCell(
+                  Text(
+                    format(m, diff),
+                    style: TextStyle(color: color),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    '${pct.toStringAsFixed(1)}%',
+                    style: TextStyle(color: color),
+                  ),
+                ),
+              ]);
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 28),
+      ],
+    );
+  }
 
   Widget _buildSection(
     BuildContext context,
@@ -173,6 +200,20 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 }
 
 // ===== Small value objects / widgets =====
+
+class _ComparisonMetric {
+  final String label;
+  final double current;
+  final double previous;
+  final bool isCurrency;
+
+  const _ComparisonMetric(
+    this.label,
+    this.current,
+    this.previous, {
+    this.isCurrency = false,
+  });
+}
 
 class _KpiTile {
   final String title;
@@ -222,3 +263,7 @@ class _KpiCard extends StatelessWidget {
 
 // ===== Formatting =====
 String _eur(num v) => '€${v.toStringAsFixed(2)}';
+double _pct(num cur, num py) {
+  if (py == 0) return cur == 0 ? 0 : 100;
+  return ((cur - py) / py) * 100.0;
+}
