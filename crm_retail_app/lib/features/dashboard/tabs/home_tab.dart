@@ -123,12 +123,13 @@ class SalesBarChart extends StatelessWidget {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 42,
+              reservedSize: 30,
               interval: maxY == 0 ? 1 : maxY / 4,
-              getTitlesWidget: (value, _) => Text(
-                _formatValue(value),
-                style: const TextStyle(fontSize: 10),
-              ),
+              getTitlesWidget:
+                  (value, _) => Text(
+                    _formatValue(value),
+                    style: const TextStyle(fontSize: 10),
+                  ),
             ),
           ),
           rightTitles: const AxisTitles(
@@ -159,21 +160,22 @@ class SalesBarChart extends StatelessWidget {
         ),
         borderData: FlBorderData(show: false),
         gridData: const FlGridData(show: false),
-        barGroups: data.asMap().entries.map((entry) {
-          final x = entry.key;
-          final y = entry.value.sales;
-          return BarChartGroupData(
-            x: x,
-            barRods: [
-              BarChartRodData(
-                toY: y,
-                width: 14,
-                borderRadius: BorderRadius.circular(6),
-                color: Colors.teal,
-              ),
-            ],
-          );
-        }).toList(),
+        barGroups:
+            data.asMap().entries.map((entry) {
+              final x = entry.key;
+              final y = entry.value.sales;
+              return BarChartGroupData(
+                x: x,
+                barRods: [
+                  BarChartRodData(
+                    toY: y,
+                    width: 14,
+                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.teal,
+                  ),
+                ],
+              );
+            }).toList(),
       ),
     );
   }
@@ -203,7 +205,7 @@ class SalesTrendCard extends StatelessWidget {
             tabs: const [Tab(text: 'Week'), Tab(text: 'Hour')],
           ),
           SizedBox(
-            height: 220,
+            height: 250,
             child: TabBarView(
               children: [
                 SalesBarChart(data: weekData),
@@ -575,7 +577,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 38),
                 Text(
                   "Store Comparison",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
