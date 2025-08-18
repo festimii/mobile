@@ -97,8 +97,7 @@ class SalesBarChart extends StatelessWidget {
   double _calcBaseMaxY() {
     final maxVal = data.map((e) => e.sales).reduce(max);
     if (maxVal <= 0) return 0;
-    final magnitude =
-        pow(10, maxVal.toInt().toString().length - 1).toDouble();
+    final magnitude = pow(10, maxVal.toInt().toString().length - 1).toDouble();
     return ((maxVal / magnitude).ceil() * magnitude).toDouble();
   }
 
@@ -106,80 +105,83 @@ class SalesBarChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseMaxY = _calcBaseMaxY();
     // Add headroom so the tallest bar doesn't clip the top labels.
-    final maxY = baseMaxY * 1.1;
-    return BarChart(
-      BarChartData(
-        maxY: maxY,
-        alignment: BarChartAlignment.spaceAround,
-        barTouchData: BarTouchData(
-          enabled: true,
-          touchTooltipData: BarTouchTooltipData(
-            tooltipBgColor: Colors.black87,
-            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              return BarTooltipItem(
-                _formatValue(rod.toY),
-                const TextStyle(color: Colors.white),
-              );
-            },
-          ),
-        ),
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: baseMaxY == 0 ? 1 : baseMaxY / 4,
-              getTitlesWidget:
-                  (value, _) => Text(
-                    _formatValue(value),
-                    style: const TextStyle(fontSize: 10),
-                  ),
-            ),
-          ),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              getTitlesWidget: (value, _) {
-                final index = value.toInt();
-                if (index >= 0 && index < data.length) {
-                  if (data.length > 12 && index.isOdd) {
-                    return const SizedBox.shrink();
-                  }
-                  return Text(
-                    data[index].day,
-                    style: const TextStyle(fontSize: 10),
-                  );
-                }
-                return const SizedBox.shrink();
+    final maxY = baseMaxY * 1.2;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: BarChart(
+        BarChartData(
+          maxY: maxY,
+          alignment: BarChartAlignment.spaceAround,
+          barTouchData: BarTouchData(
+            enabled: true,
+            touchTooltipData: BarTouchTooltipData(
+              tooltipBgColor: Colors.black87,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                return BarTooltipItem(
+                  _formatValue(rod.toY),
+                  const TextStyle(color: Colors.white),
+                );
               },
             ),
           ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                interval: baseMaxY == 0 ? 1 : baseMaxY / 4,
+                getTitlesWidget:
+                    (value, _) => Text(
+                      _formatValue(value),
+                      style: const TextStyle(fontSize: 10),
+                    ),
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, _) {
+                  final index = value.toInt();
+                  if (index >= 0 && index < data.length) {
+                    if (data.length > 12 && index.isOdd) {
+                      return const SizedBox.shrink();
+                    }
+                    return Text(
+                      data[index].day,
+                      style: const TextStyle(fontSize: 10),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          gridData: const FlGridData(show: false),
+          barGroups:
+              data.asMap().entries.map((entry) {
+                final x = entry.key;
+                final y = entry.value.sales;
+                return BarChartGroupData(
+                  x: x,
+                  barRods: [
+                    BarChartRodData(
+                      toY: y,
+                      width: 14,
+                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.teal,
+                    ),
+                  ],
+                );
+              }).toList(),
         ),
-        borderData: FlBorderData(show: false),
-        gridData: const FlGridData(show: false),
-        barGroups:
-            data.asMap().entries.map((entry) {
-              final x = entry.key;
-              final y = entry.value.sales;
-              return BarChartGroupData(
-                x: x,
-                barRods: [
-                  BarChartRodData(
-                    toY: y,
-                    width: 14,
-                    borderRadius: BorderRadius.circular(6),
-                    color: Colors.teal,
-                  ),
-                ],
-              );
-            }).toList(),
       ),
     );
   }
