@@ -145,13 +145,14 @@ public class DashboardService {
                         m("VS Dje", compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
                         m("Vs Viti Kaluar", compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
                         m("Total Viti Kaluar", compactFromMap(metricsRow, "TotalRevenuePY")),
-                        m("Dje", compactFromMap(metricsRow, "RevenueYesterday")),
-                        m("Total Peek", asString(metricsRow, "PeakHour", ""))
+                        m("Dje", compactFromMap(metricsRow, "RevenueYesterday"))
                 )),
 
                 m("Kuponat", compactFromMap(metricsRow, "Transactions"), List.of(
                         m("Vs Viti Kaluar", pctFromMap(metricsRow, "Transactions", "TransactionsPY") + "%"),
-                        m("Viti Kaluar", compactFromMap(metricsRow, "TransactionsPY"))
+                        m("Viti Kaluar", compactFromMap(metricsRow, "TransactionsPY")),
+                        m("Ora Me Trafik", asString(metricsRow, "PeakHour", ""))
+
                 )),
 
                 m("Shporta Mesatare", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
@@ -159,7 +160,7 @@ public class DashboardService {
                         m("Viti Kaluar", compactFromMap(metricsRow, "AvgBasketSizePY"))
                 )),
 
-                m("Top Pika", asString(metricsRow, "TopStoreName", ""), List.of(
+                m("Top Pika", asString(metricsRow, "TopStoreOE", ""), List.of(
                         m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue"))
                 ))
         );
