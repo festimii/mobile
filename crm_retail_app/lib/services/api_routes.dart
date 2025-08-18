@@ -5,7 +5,7 @@ class ApiRoutes {
   /// emulator, allowing the Flutter app to reach a Spring Boot instance
   /// started on the same computer. If you deploy the backend elsewhere, update
   /// this URL accordingly.
-  static const baseUrl = 'http://192.168.178.102:8080';
+  static const baseUrl = 'http://192.168.100.63:8080';
 
   static const login = '/auth/login';
   static const logout = '/auth/logout';

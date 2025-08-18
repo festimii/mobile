@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;      // <-- add
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -87,7 +88,12 @@ public class DashboardService {
     public void resetMetrics() {
         // no-op; annotation performs eviction
     }
-
+    /** Auto-refresh every 20 minutes (ISO-8601 duration). */
+    @Scheduled(fixedRateString = "PT20M", initialDelayString = "PT20M")
+    @Transactional(readOnly = true)
+    public void refreshMetricsEvery20Minutes() {
+        refreshMetrics(); // @CachePut updates the "dashboard::metrics" entry
+    }
     // ----------------- internal loader -----------------
 
     @Transactional(readOnly = true)
