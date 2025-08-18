@@ -247,7 +247,24 @@ class RecentCustomerTile extends StatelessWidget {
 /// =======================
 /// Filters & sorting enums
 /// =======================
-enum StoreFilter { all, positive, negative }
+const Set<int> _xlStoreIds = {
+  3,
+  7,
+  9,
+  10,
+  15,
+  16,
+  17,
+  43,
+  44,
+  54,
+  73,
+  87,
+  115,
+  120,
+};
+
+enum StoreFilter { all, positive, negative, xl }
 
 enum StoreSort { storeNumber, percentChange }
 
@@ -290,6 +307,8 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
               return s.percentChange > 0;
             case StoreFilter.negative:
               return s.percentChange < 0;
+            case StoreFilter.xl:
+              return _xlStoreIds.contains(s.storeId);
             case StoreFilter.all:
               return true;
           }
@@ -340,6 +359,10 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
                 DropdownMenuItem(
                   value: StoreFilter.negative,
                   child: Text("Negative"),
+                ),
+                DropdownMenuItem(
+                  value: StoreFilter.xl,
+                  child: Text('XL'),
                 ),
               ],
             ),
@@ -648,6 +671,8 @@ class _FilterableAnimatedStoreSalesTableState
               return s.percentChange > 0;
             case StoreFilter.negative:
               return s.percentChange < 0;
+            case StoreFilter.xl:
+              return _xlStoreIds.contains(s.storeId);
             case StoreFilter.all:
               return true;
           }
@@ -718,6 +743,10 @@ class _FilterableAnimatedStoreSalesTableState
                 DropdownMenuItem(
                   value: StoreFilter.negative,
                   child: Text('Negative'),
+                ),
+                DropdownMenuItem(
+                  value: StoreFilter.xl,
+                  child: Text('XL'),
                 ),
               ],
             ),
