@@ -143,19 +143,21 @@ public class DashboardService {
         List<Metric> metrics = List.of(
                 m("Total Revenue", compactFromMap(metricsRow, "TotalRevenue"), List.of(
                         m("VS Dje", compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
-                        m("Vs Viti Kaluar",        compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
-                        m("Total Viti Kaluar",           compactFromMap(metricsRow, "TotalRevenuePY")),
-                        m("Dje",    compactFromMap(metricsRow, "RevenueYesterday")),
-                        m("Top Pika",    asString(metricsRow, "TopStoreName", "")),
+                        m("Vs Viti Kaluar", compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
+                        m("Total Viti Kaluar", compactFromMap(metricsRow, "TotalRevenuePY")),
+                        m("Dje", compactFromMap(metricsRow, "RevenueYesterday")),
+                        m("Top Pika", asString(metricsRow, "TopStoreName", "")),
                         m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue")),
-                        m("Total Peek",  asString(metricsRow, "PeakHour", ""))
-                        )),
+                        m("Total Peek", asString(metricsRow, "PeakHour", ""))
+                )),
 
                 m("Kuponat", compactFromMap(metricsRow, "Transactions"), List.of(
+                        m("Vs Viti Kaluar", pctFromMap(metricsRow, "Transactions", "TransactionsPY") + "%"),
                         m("Viti Kaluar", compactFromMap(metricsRow, "TransactionsPY"))
                 )),
 
                 m("Shporta Mesatare", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
+                        m("Vs Viti Kaluar", pctFromMap(metricsRow, "AvgBasketSize", "AvgBasketSizePY") + "%"),
                         m("Viti Kaluar", compactFromMap(metricsRow, "AvgBasketSizePY"))
                 ))
         );
@@ -308,6 +310,17 @@ public class DashboardService {
         if (v == null) return def;
         if (v instanceof BigDecimal bd) return bd.stripTrailingZeros().toPlainString();
         return String.valueOf(v);
+    }
+
+    private static String pctFromMap(Map<String, Object> map, String curKey, String prevKey) {
+        BigDecimal current = toDecimal(map != null ? map.get(curKey) : null);
+        BigDecimal previous = toDecimal(map != null ? map.get(prevKey) : null);
+        if (previous.compareTo(BigDecimal.ZERO) == 0) return "0";
+        BigDecimal pct = current.subtract(previous)
+                .divide(previous, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(1, RoundingMode.HALF_UP);
+        return pct.stripTrailingZeros().toPlainString();
     }
 
     private static String compactFromMap(Map<String, Object> map, String key) {
