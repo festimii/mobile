@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import '../../models/dashboard_models.dart';
 import '../../services/api_service.dart';
 
-/// Store detail screen
-/// - Accepts a `StoreSales` item (has store name and id)
-/// - Fetches KPIs from backend
-/// - Displays organized KPI sections with derived metrics (%, diffs)
 class StoreDetailScreen extends StatefulWidget {
   final StoreSales sales;
 
