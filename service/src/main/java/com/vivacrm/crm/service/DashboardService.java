@@ -59,13 +59,28 @@ public class DashboardService {
                 .withProcedureName("SP_GetDashboardData")
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
-                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenue",      Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("Transactions",      Types.BIGINT),
-                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSize",     Types.DECIMAL),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopProductCode",    Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("TopProductName",    Types.VARCHAR),
-                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsToday",      Types.INTEGER),
-                        new org.springframework.jdbc.core.SqlOutParameter("LowInventoryCount", Types.INTEGER)
+                        new org.springframework.jdbc.core.SqlOutParameter("CutoffHour",          Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenue",        Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("Transactions",        Types.BIGINT),
+                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSize",       Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TotalRevenuePY",      Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TransactionsPY",      Types.BIGINT),
+                        new org.springframework.jdbc.core.SqlOutParameter("AvgBasketSizePY",     Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("RevenueYesterday",    Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("RevenueVsYesterdayPct", Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("RevenueVsPYPct",     Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopProductCode",      Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopProductName",      Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreOE",          Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreName",        Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("TopStoreRevenue",     Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsToday",        Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsValue",        Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("ReturnsRatePct",      Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("DiscountSharePct",    Types.DECIMAL),
+                        new org.springframework.jdbc.core.SqlOutParameter("PeakHour",            Types.INTEGER),
+                        new org.springframework.jdbc.core.SqlOutParameter("PeakHourLabel",       Types.VARCHAR),
+                        new org.springframework.jdbc.core.SqlOutParameter("LowInventoryCount",   Types.INTEGER)
                 );
     }
 
@@ -123,16 +138,28 @@ public class DashboardService {
         }
 
         List<Metric> metrics = List.of(
-                new Metric("Total Revenue",       compactFromMap(metricsRow, "TotalRevenue")),
-                new Metric("Transactions",        compactFromMap(metricsRow, "Transactions")),
-                new Metric("Avg Basket Size",     compactFromMap(metricsRow, "AvgBasketSize")),
-                new Metric("Top Product Code",    asString(metricsRow, "TopProductCode", "")),
-                new Metric("Top Product Name",    asString(metricsRow, "TopProductName", "")),
-                new Metric("Returns Today",       compactFromMap(metricsRow, "ReturnsToday")),
-                new Metric("Returns Value",       compactFromMap(metricsRow, "ReturnsValue")),
-                new Metric("Returns Rate",        compactFromMap(metricsRow, "ReturnsRatePct") + "%"),
-                new Metric("Discount Share",      compactFromMap(metricsRow, "DiscountSharePct") + "%"),
-                new Metric("Low Inventory Count", compactFromMap(metricsRow, "LowInventoryCount"))
+                new Metric("Cutoff Hour",           asString(metricsRow, "CutoffHour", "")),
+                new Metric("Total Revenue",         compactFromMap(metricsRow, "TotalRevenue")),
+                new Metric("Transactions",          compactFromMap(metricsRow, "Transactions")),
+                new Metric("Avg Basket Size",       compactFromMap(metricsRow, "AvgBasketSize")),
+                new Metric("Total Revenue PY",      compactFromMap(metricsRow, "TotalRevenuePY")),
+                new Metric("Transactions PY",      compactFromMap(metricsRow, "TransactionsPY")),
+                new Metric("Avg Basket Size PY",   compactFromMap(metricsRow, "AvgBasketSizePY")),
+                new Metric("Revenue Yesterday",    compactFromMap(metricsRow, "RevenueYesterday")),
+                new Metric("Revenue Vs Yesterday",  compactFromMap(metricsRow, "RevenueVsYesterdayPct") + "%"),
+                new Metric("Revenue Vs PY",         compactFromMap(metricsRow, "RevenueVsPYPct") + "%"),
+                new Metric("Top Product Code",      asString(metricsRow, "TopProductCode", "")),
+                new Metric("Top Product Name",      asString(metricsRow, "TopProductName", "")),
+                new Metric("Top Store OE",          asString(metricsRow, "TopStoreOE", "")),
+                new Metric("Top Store Name",        asString(metricsRow, "TopStoreName", "")),
+                new Metric("Top Store Revenue",     compactFromMap(metricsRow, "TopStoreRevenue")),
+                new Metric("Returns Today",         compactFromMap(metricsRow, "ReturnsToday")),
+                new Metric("Returns Value",         compactFromMap(metricsRow, "ReturnsValue")),
+                new Metric("Returns Rate",          compactFromMap(metricsRow, "ReturnsRatePct") + "%"),
+                new Metric("Discount Share",        compactFromMap(metricsRow, "DiscountSharePct") + "%"),
+                new Metric("Peak Hour",             asString(metricsRow, "PeakHour", "")),
+                new Metric("Peak Hour Label",       asString(metricsRow, "PeakHourLabel", "")),
+                new Metric("Low Inventory Count",   compactFromMap(metricsRow, "LowInventoryCount"))
         );
 
         // Daily series labels as day-of-week: Mon, Tue, ...
