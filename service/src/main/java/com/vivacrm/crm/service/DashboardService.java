@@ -89,7 +89,6 @@ public class DashboardService {
         // no-op; annotation performs eviction
     }
     /** Auto-refresh every 20 minutes (ISO-8601 duration). */
-    @Scheduled(fixedRateString = "PT20M", initialDelayString = "PT20M")
     @Transactional(readOnly = true)
     public void refreshMetricsEvery20Minutes() {
         refreshMetrics(); // @CachePut updates the "dashboard::metrics" entry

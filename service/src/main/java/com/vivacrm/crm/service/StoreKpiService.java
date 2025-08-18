@@ -51,7 +51,6 @@ public class StoreKpiService {
         return kpi;
     }
 
-    @Scheduled(fixedRateString = "PT20M", initialDelayString = "PT20M")
     @Transactional(readOnly = true)
     public void scheduledRefreshAllStores() {
         refreshAllStores();

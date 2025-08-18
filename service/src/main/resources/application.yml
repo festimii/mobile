@@ -1,0 +1,5 @@
+# application.yml
+app:
+  cache:
+    refresh:
+      cron: "0 0/20 * * * *"   # all caches refresh together every 20 minutes
