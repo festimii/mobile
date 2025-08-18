@@ -16,9 +16,24 @@ class SummaryCard extends StatelessWidget {
 
   const SummaryCard({super.key, required this.metric});
 
+  Color _valueColor(String value, ThemeData theme) {
+    final match = RegExp(r'-?\d+(\.\d+)?')
+        .firstMatch(value.replaceAll(',', ''));
+    if (match != null) {
+      final number = double.tryParse(match.group(0)!);
+      if (number != null && value.contains('%')) {
+        if (number > 0) return Colors.green;
+        if (number < 0) return Colors.red;
+        return Colors.grey;
+      }
+    }
+    return theme.textTheme.bodyLarge?.color ?? Colors.black;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final valueColor = _valueColor(metric.value, theme);
     return Card(
       elevation: 4,
       color: theme.cardColor,
@@ -35,38 +50,72 @@ class SummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: metric.color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(metric.icon, size: 28, color: metric.color),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      metric.title,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: metric.color.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      metric.value,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
+                    child: Icon(metric.icon, size: 28, color: metric.color),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          metric.title,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          metric.value,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: valueColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              if (metric.subMetrics.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                ...metric.subMetrics.map((sub) {
+                  final subColor = _valueColor(sub.value, theme);
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      children: [
+                        Icon(sub.icon, size: 16, color: sub.color),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            sub.title,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ),
+                        Text(
+                          sub.value,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: subColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
             ],
           ),
         ),
