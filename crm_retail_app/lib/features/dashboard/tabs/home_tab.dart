@@ -360,10 +360,7 @@ class _StoreSalesTableState extends State<StoreSalesTable> {
                   value: StoreFilter.negative,
                   child: Text("Negative"),
                 ),
-                DropdownMenuItem(
-                  value: StoreFilter.xl,
-                  child: Text('XL'),
-                ),
+                DropdownMenuItem(value: StoreFilter.xl, child: Text('XL')),
               ],
             ),
             const SizedBox(width: 16),
@@ -553,11 +550,6 @@ class _HomeTabState extends State<HomeTab> {
                 : MediaQuery.of(context).size.width / 2 - 22;
 
         return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {},
-            tooltip: 'New Sale',
-            child: const Icon(Icons.add),
-          ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -744,10 +736,7 @@ class _FilterableAnimatedStoreSalesTableState
                   value: StoreFilter.negative,
                   child: Text('Negative'),
                 ),
-                DropdownMenuItem(
-                  value: StoreFilter.xl,
-                  child: Text('XL'),
-                ),
+                DropdownMenuItem(value: StoreFilter.xl, child: Text('XL')),
               ],
             ),
             DropdownButton<StoreSort>(
