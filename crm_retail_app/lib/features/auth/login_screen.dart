@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _needsOtp = false;
   bool _rememberDevice = false;
+  bool _isLoading = false;
 
   final ApiService _api = ApiService();
   Timer? _otpTimer;
@@ -44,6 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() => _isLoading = true);
+
     final username = _emailCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
     final otp = _needsOtp ? _otpCtrl.text.trim() : null;
@@ -61,57 +64,63 @@ class _LoginScreenState extends State<LoginScreen> {
 
     debugPrint('🔐 Login Request:\n${jsonEncode(loginPayload)}');
 
-    final res = await _api.login(
-      username,
-      password,
-      otp,
-      deviceToken: deviceToken.isNotEmpty ? deviceToken : null,
-      rememberDevice: otp != null && _rememberDevice,
-    );
+    try {
+      final res = await _api.login(
+        username,
+        password,
+        otp,
+        deviceToken: deviceToken.isNotEmpty ? deviceToken : null,
+        rememberDevice: otp != null && _rememberDevice,
+      );
 
-    if (res == null) {
-      _showSnack('Network error');
-      return;
-    }
-
-    debugPrint('🔄 Login Response [${res.statusCode}]: ${res.body}');
-
-    if (res.statusCode == 200) {
-      final data =
-          res.body.isNotEmpty
-              ? jsonDecode(res.body) as Map<String, dynamic>
-              : <String, dynamic>{};
-
-      await userProvider.setUsername(username);
-
-      final newToken = data['deviceToken'] as String?;
-      if (newToken != null && newToken.isNotEmpty) {
-        debugPrint('✅ New deviceToken received: $newToken');
-        await userProvider.setDeviceToken(newToken);
-      } else {
-        debugPrint('ℹ️ No new deviceToken returned.');
+      if (res == null) {
+        _showSnack('Network error');
+        return;
       }
 
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
-    } else if (res.statusCode == 403) {
-      if (res.body.contains('OTP required')) {
-        debugPrint('🔐 OTP required response received.');
-        setState(() => _needsOtp = true);
-        _showSnack('Enter one-time code');
-      } else if (res.body.contains('Invalid OTP')) {
-        debugPrint('❌ Invalid OTP response received.');
-        _showSnack('Invalid code');
+      debugPrint('🔄 Login Response [${res.statusCode}]: ${res.body}');
+
+      if (res.statusCode == 200) {
+        final data =
+            res.body.isNotEmpty
+                ? jsonDecode(res.body) as Map<String, dynamic>
+                : <String, dynamic>{};
+
+        await userProvider.setUsername(username);
+
+        final newToken = data['deviceToken'] as String?;
+        if (newToken != null && newToken.isNotEmpty) {
+          debugPrint('✅ New deviceToken received: $newToken');
+          await userProvider.setDeviceToken(newToken);
+        } else {
+          debugPrint('ℹ️ No new deviceToken returned.');
+        }
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      } else if (res.statusCode == 403) {
+        if (res.body.contains('OTP required')) {
+          debugPrint('🔐 OTP required response received.');
+          setState(() => _needsOtp = true);
+          _showSnack('Enter one-time code');
+        } else if (res.body.contains('Invalid OTP')) {
+          debugPrint('❌ Invalid OTP response received.');
+          _showSnack('Invalid code');
+        } else {
+          debugPrint('❌ 403 but unknown body: ${res.body}');
+          _showSnack('Invalid credentials');
+        }
       } else {
-        debugPrint('❌ 403 but unknown body: ${res.body}');
+        debugPrint('❌ Login failed with status: ${res.statusCode}');
         _showSnack('Invalid credentials');
       }
-    } else {
-      debugPrint('❌ Login failed with status: ${res.statusCode}');
-      _showSnack('Invalid credentials');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -155,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 TextFormField(
                   controller: _emailCtrl,
+                  enabled: !_isLoading,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Username or Email',
@@ -170,6 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 TextFormField(
                   controller: _passwordCtrl,
+                  enabled: !_isLoading,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password',
@@ -197,6 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (_needsOtp) ...[
                   TextFormField(
                     controller: _otpCtrl,
+                    enabled: !_isLoading,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'One-time code',
@@ -241,11 +253,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _login,
+                    onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text('Login', style: TextStyle(fontSize: 16)),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('Login',
+                            style: TextStyle(fontSize: 16)),
                   ),
                 ),
               ],
