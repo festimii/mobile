@@ -184,6 +184,26 @@ class ApiService {
         return Icons.trending_up;
       case 'Revenue Vs PY':
         return Icons.show_chart;
+      case 'Shitjet Sod':
+        return Icons.attach_money;
+      case 'VS Dje':
+        return Icons.trending_up;
+      case 'Vs Viti Kaluar':
+        return Icons.show_chart;
+      case 'Total Viti Kaluar':
+        return Icons.attach_money;
+      case 'Dje':
+        return Icons.today;
+      case 'Kuponat':
+        return Icons.receipt_long;
+      case 'Viti Kaluar':
+        return Icons.history;
+      case 'Shporta Mesatare':
+        return Icons.shopping_bag;
+      case 'Top Pika':
+        return Icons.store;
+      case 'Shitjet e Pikes':
+        return Icons.storefront;
       case 'Top Product Code':
       case 'Top Product Name':
         return Icons.star;
@@ -230,6 +250,26 @@ class ApiService {
         return Colors.purple;
       case 'Revenue Vs PY':
         return Colors.deepPurple;
+      case 'Shitjet Sod':
+        return Colors.green;
+      case 'VS Dje':
+        return Colors.purple;
+      case 'Vs Viti Kaluar':
+        return Colors.deepPurple;
+      case 'Total Viti Kaluar':
+        return Colors.greenAccent;
+      case 'Dje':
+        return Colors.lightGreen;
+      case 'Kuponat':
+        return Colors.blue;
+      case 'Viti Kaluar':
+        return Colors.blueGrey;
+      case 'Shporta Mesatare':
+        return Colors.indigo;
+      case 'Top Pika':
+        return Colors.brown;
+      case 'Shitjet e Pikes':
+        return Colors.green;
       case 'Top Product Code':
       case 'Top Product Name':
         return Colors.amber;
