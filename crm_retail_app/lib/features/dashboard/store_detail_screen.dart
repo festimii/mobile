@@ -135,8 +135,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           childAspectRatio: 1.2,
-          children:
-              metrics.map((m) => _ComparisonCard(metric: m)).toList(),
+          children: metrics.map((m) => _ComparisonCard(metric: m)).toList(),
         ),
         const SizedBox(height: 28),
       ],
@@ -166,7 +165,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           crossAxisCount: 2,
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
-          childAspectRatio: 1.2,
+          childAspectRatio: 0.9,
           children: kpis.map((kpi) => _KpiCard(kpi: kpi)).toList(),
         ),
         const SizedBox(height: 28),
@@ -203,8 +202,7 @@ class _ComparisonCard extends StatelessWidget {
     final diff = metric.current - metric.previous;
     final pct = _pct(metric.current, metric.previous);
     final color = diff >= 0 ? Colors.green : Colors.red;
-    String format(num v) =>
-        metric.isCurrency ? _eur(v) : v.toStringAsFixed(0);
+    String format(num v) => metric.isCurrency ? _eur(v) : v.toStringAsFixed(0);
 
     return Card(
       elevation: 3,
@@ -272,6 +270,7 @@ class _KpiCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(kpi.icon, color: theme.primaryColor, size: 28),
             const SizedBox(height: 10),
@@ -283,10 +282,15 @@ class _KpiCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              kpi.value,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                kpi.value,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
