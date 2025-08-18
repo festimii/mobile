@@ -1,6 +1,9 @@
+// src/main/java/com/vivacrm/crm/service/StoreKpiService.java
 package com.vivacrm.crm.service;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,15 +26,33 @@ public class StoreKpiService {
         this.jdbc = jdbc;
     }
 
+    /**
+     * Caches the result by storeId in the in-memory ConcurrentMap cache named "storeKpi".
+     * Null results are not cached.
+     */
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "storeKpi", key = "#storeId", unless = "#result == null")
     public StoreKpi getStoreKpi(int storeId) {
+        // If your proc supports it, prefer parameterized: "EXEC SP_GetStoreKPI @StoreId = ?"
+        // return jdbc.queryForObject("EXEC SP_GetStoreKPI @StoreId = ?", mapper, storeId);
         List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
         Map<String, Object> row = rows.stream()
-                .filter(r -> Objects.toString(r.get("StoreId"), "")
-                        .equals(String.valueOf(storeId)))
+                .filter(r -> Objects.toString(r.get("StoreId"), "").equals(String.valueOf(storeId)))
                 .findFirst()
                 .orElse(Collections.emptyMap());
         return mapRow(row);
+    }
+
+    /** Evict a single store’s cached KPI (call after writing new data for that store). */
+    @CacheEvict(cacheNames = "storeKpi", key = "#storeId")
+    public void evictStoreKpi(int storeId) {
+        // no-op; annotation performs eviction
+    }
+
+    /** Evict all cached KPIs (call after bulk loads/ETL). */
+    @CacheEvict(cacheNames = "storeKpi", allEntries = true)
+    public void evictAllStoreKpi() {
+        // no-op; annotation performs eviction
     }
 
     private StoreKpi mapRow(Map<String, Object> r) {
