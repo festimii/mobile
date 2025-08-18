@@ -17,18 +17,20 @@ class SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => MetricDetailScreen(metric: metric)),
-        );
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Card(
-        elevation: 4,
-        color: theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    return Card(
+      elevation: 4,
+      color: theme.cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MetricDetailScreen(metric: metric),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
