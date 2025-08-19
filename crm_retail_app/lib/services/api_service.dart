@@ -14,8 +14,8 @@ class ApiService {
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
   Uri _uriWithDate(String path, DateTime? date) {
     if (date == null) return _uri(path);
-    final formatted = date.toIso8601String().split('T').first;
-    return Uri.parse('$baseUrl$path?date=$formatted');
+    final formatted = date.toIso8601String();
+    return Uri.parse('$baseUrl$path?forDate=$formatted');
   }
 
   /// Attempts to authenticate a user. Returns the raw HTTP response so
@@ -55,8 +55,8 @@ class ApiService {
     }
   }
 
-  Future<List<SummaryMetric>> fetchMetrics() async {
-    final res = await http.get(_uri(ApiRoutes.metrics));
+  Future<List<SummaryMetric>> fetchMetrics({DateTime? date}) async {
+    final res = await http.get(_uriWithDate(ApiRoutes.metrics, date));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final metricsJson = data['metrics'] as List<dynamic>? ?? [];
     return metricsJson.map((e) {
