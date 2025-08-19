@@ -5,7 +5,7 @@ import '../models/dashboard_models.dart';
 
 /// Returns hard coded data used during development.
 class MockApiService {
-  Future<List<SummaryMetric>> fetchMetrics() async {
+  Future<List<SummaryMetric>> fetchMetrics({DateTime? date}) async {
     await Future.delayed(const Duration(milliseconds: 300));
     return [
       SummaryMetric(

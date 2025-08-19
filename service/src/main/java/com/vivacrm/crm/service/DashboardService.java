@@ -16,8 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -89,14 +91,20 @@ public class DashboardService {
     @Cacheable(value = "dashboard", key = "'metrics'")
     @Transactional(readOnly = true)
     public DashboardPayload getMetrics() {
-        return loadMetrics(LocalDate.now());
+        return loadMetrics(LocalDateTime.now());
+    }
+
+    /** Return metrics for a specific date/time without caching. */
+    @Transactional(readOnly = true)
+    public DashboardPayload getMetrics(LocalDateTime forDate) {
+        return loadMetrics(forDate);
     }
 
     /** Force-refresh cache and return fresh payload. */
     @CachePut(value = "dashboard", key = "'metrics'")
     @Transactional(readOnly = true)
     public DashboardPayload refreshMetrics() {
-        return loadMetrics(LocalDate.now());
+        return loadMetrics(LocalDateTime.now());
     }
 
     /** Evict cached payload (manual reset). */
@@ -112,10 +120,11 @@ public class DashboardService {
 
     // ----------------- internal loader -----------------
     @Transactional(readOnly = true)
-    protected DashboardPayload loadMetrics(LocalDate date) {
+    protected DashboardPayload loadMetrics(LocalDateTime dateTime) {
         MapSqlParameterSource in = new MapSqlParameterSource();
-        // If your proc expects a date param, add it here:
-        // in.addValue("p_Date", java.sql.Date.valueOf(date));
+        if (dateTime != null) {
+            in.addValue("p_ForDate", Timestamp.valueOf(dateTime));
+        }
 
         List<Map<String, Object>> rs1 = Collections.emptyList();
         List<Map<String, Object>> rs2 = Collections.emptyList();

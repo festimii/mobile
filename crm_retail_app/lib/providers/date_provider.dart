@@ -6,15 +6,11 @@ class DateProvider extends ChangeNotifier {
 
   DateTime get selectedDate => _selectedDate;
 
-  /// Updates the selected date and notifies listeners if changed.
+  /// Updates the selected date/time and notifies listeners if changed.
   void setDate(DateTime date) {
-    if (!_isSameDay(_selectedDate, date)) {
+    if (!_selectedDate.isAtSameMomentAs(date)) {
       _selectedDate = date;
       notifyListeners();
     }
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
