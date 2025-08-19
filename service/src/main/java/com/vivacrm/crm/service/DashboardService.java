@@ -72,7 +72,12 @@ public class DashboardService {
         return loadMetrics(LocalDateTime.now());
     }
 
-    /** Return metrics for a specific date/time without caching. */
+    /**
+     * Return metrics for a specific date/time.
+     * Results are cached per day to avoid repeated stored procedure calls
+     * for the same historical date.
+     */
+    @Cacheable(value = "dashboard", key = "'metrics:' + #forDate.toLocalDate()")
     @Transactional(readOnly = true)
     public DashboardPayload getMetrics(LocalDateTime forDate) {
         return loadMetrics(forDate);
@@ -89,10 +94,13 @@ public class DashboardService {
     @CacheEvict(value = "dashboard", key = "'metrics'")
     public void resetMetrics() { /* no-op */ }
 
-    /** Auto-refresh every 20 minutes. */
-    @Scheduled(fixedDelay = 20 * 60 * 1000L)
+    /**
+     * Auto-refresh today's metrics shortly after the top of every hour
+     * (e.g. 10:01, 11:01). Historical dates remain cached indefinitely.
+     */
+    @Scheduled(cron = "0 1 * * * *", zone = "Europe/Belgrade")
     @Transactional(readOnly = true)
-    public void refreshMetricsEvery20Minutes() {
+    public void refreshMetricsHourly() {
         refreshMetrics();
     }
 
