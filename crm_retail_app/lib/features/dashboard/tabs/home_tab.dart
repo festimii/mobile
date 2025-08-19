@@ -3,11 +3,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 
 import '../metric_detail_screen.dart';
 import '../store_detail_screen.dart';
 import '../../../models/dashboard_models.dart';
 import '../../../services/api_service.dart';
+import '../../../providers/date_provider.dart';
 
 /// =======================
 /// Summary KPI card
@@ -577,12 +579,22 @@ class _HomeTabState extends State<HomeTab> {
 
   Timer? _timer;
   Duration _timeLeft = const Duration(minutes: 11);
+  DateTime? _currentDate;
 
   @override
   void initState() {
     super.initState();
-    _future = _api.fetchDashboard();
     _startTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final date = context.watch<DateProvider>().selectedDate;
+    if (_currentDate != date) {
+      _currentDate = date;
+      _setFuture();
+    }
   }
 
   void _startTimer() {
@@ -598,11 +610,13 @@ class _HomeTabState extends State<HomeTab> {
     });
   }
 
+  void _setFuture() {
+    _future = _api.fetchDashboard(date: _currentDate);
+    _timeLeft = const Duration(minutes: 11);
+  }
+
   void _refreshData() {
-    setState(() {
-      _future = _api.fetchDashboard();
-      _timeLeft = const Duration(minutes: 11);
-    });
+    setState(_setFuture);
   }
 
   String _formatDuration(Duration d) {

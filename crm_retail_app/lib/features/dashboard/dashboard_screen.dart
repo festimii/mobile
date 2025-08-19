@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:crm_retail_app/features/dashboard/tabs/home_tab.dart';
 import 'package:crm_retail_app/features/dashboard/tabs/sales_tab.dart';
 import 'package:crm_retail_app/features/dashboard/tabs/inventory_tab.dart';
 import 'package:crm_retail_app/features/dashboard/tabs/settings_tab.dart';
+import 'package:crm_retail_app/providers/date_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -26,7 +28,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_currentIndex])),
+      appBar: AppBar(
+        title: Text(_titles[_currentIndex]),
+        actions: [
+          Consumer<DateProvider>(
+            builder: (context, dateProvider, _) => IconButton(
+              icon: const Icon(Icons.calendar_today),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: dateProvider.selectedDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) {
+                  dateProvider.setDate(picked);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
