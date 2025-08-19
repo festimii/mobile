@@ -4,6 +4,7 @@ import 'features/auth/login_screen.dart';
 import 'features/theme/misty_dark_theme.dart';
 import 'features/theme/theme_notifier.dart';
 import 'providers/user_provider.dart';
+import 'providers/date_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
         ChangeNotifierProvider.value(value: userProvider),
+        ChangeNotifierProvider(create: (_) => DateProvider()),
       ],
       child: MyApp(userProvider: userProvider), // ✅ FIXED HERE
     ),
@@ -29,24 +31,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
-        ChangeNotifierProvider.value(value: userProvider),
-      ],
-      child: Consumer<ThemeNotifier>(
-        builder: (context, theme, _) {
-          return MaterialApp(
-            title: 'Retail CRM',
-            theme: ThemeData.light(),
-            darkTheme: mistyDarkTheme,
-            themeMode: theme.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            debugShowCheckedModeBanner: false,
-            initialRoute: '/login',
-            routes: {'/login': (context) => const LoginScreen()},
-          );
-        },
-      ),
+    return Consumer<ThemeNotifier>(
+      builder: (context, theme, _) {
+        return MaterialApp(
+          title: 'Retail CRM',
+          theme: ThemeData.light(),
+          darkTheme: mistyDarkTheme,
+          themeMode: theme.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          debugShowCheckedModeBanner: false,
+          initialRoute: '/login',
+          routes: {'/login': (context) => const LoginScreen()},
+        );
+      },
     );
   }
 }

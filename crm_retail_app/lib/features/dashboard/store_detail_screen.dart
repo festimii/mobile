@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../models/dashboard_models.dart';
 import '../../services/api_service.dart';
+import '../../providers/date_provider.dart';
 
 class StoreDetailScreen extends StatefulWidget {
   final StoreSales sales;
@@ -12,16 +15,9 @@ class StoreDetailScreen extends StatefulWidget {
 }
 
 class _StoreDetailScreenState extends State<StoreDetailScreen> {
-  late final Future<StoreKpiDetail?> _kpiFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _kpiFuture = ApiService().fetchStoreKpiDetail(widget.sales.storeId);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final selectedDate = context.watch<DateProvider>().selectedDate;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -31,7 +27,8 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
         ),
       ),
       body: FutureBuilder<StoreKpiDetail?>(
-        future: _kpiFuture,
+        future:
+            ApiService().fetchStoreKpiDetail(widget.sales.storeId, date: selectedDate),
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());

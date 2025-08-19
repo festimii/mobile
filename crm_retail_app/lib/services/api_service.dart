@@ -12,6 +12,11 @@ class ApiService {
   final String baseUrl;
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
+  Uri _uriWithDate(String path, DateTime? date) {
+    if (date == null) return _uri(path);
+    final formatted = date.toIso8601String().split('T').first;
+    return Uri.parse('$baseUrl$path?date=$formatted');
+  }
 
   /// Attempts to authenticate a user. Returns the raw HTTP response so
   /// callers can inspect the status code and body. A 200 response indicates
@@ -79,8 +84,8 @@ class ApiService {
   /// Fetches dashboard data including metrics, sales series and store
   /// comparisons. The backend returns a `DashboardPayload` object which is
   /// mapped into strongly typed models for the UI layer.
-  Future<DashboardData> fetchDashboard() async {
-    final res = await http.get(_uri(ApiRoutes.metrics));
+  Future<DashboardData> fetchDashboard({DateTime? date}) async {
+    final res = await http.get(_uriWithDate(ApiRoutes.metrics, date));
     final data = jsonDecode(res.body) as Map<String, dynamic>;
 
     final metrics =
@@ -155,8 +160,9 @@ class ApiService {
     );
   }
 
-  Future<StoreKpiDetail?> fetchStoreKpiDetail(int storeId) async {
-    final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
+  Future<StoreKpiDetail?> fetchStoreKpiDetail(int storeId,
+      {DateTime? date}) async {
+    final res = await http.get(_uriWithDate(ApiRoutes.storeKpi(storeId), date));
     if (res.statusCode != 200) return null;
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiDetail.fromJson(data);
