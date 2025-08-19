@@ -8,6 +8,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -47,23 +48,19 @@ public class DashboardService {
         jdbcTemplate.setResultsMapCaseInsensitive(true);
         this.sqlServerJdbc = jdbcTemplate;
 
-        // Stored proc signature (SQL Server):
-        // ALTER PROCEDURE dbo.SP_GetDashboardData @p_ForDate DATE = NULL
-        //
-        // Behavior:
-        //  - If @p_ForDate IS NULL  -> compute for today up to the last finished hour
-        //  - If @p_ForDate IS NOT NULL -> compute that date as FULL DAY (closed)
         this.spResultSet = new SimpleJdbcCall(sqlServerJdbc)
                 .withSchemaName("dbo")
-                .withProcedureName("SP_GetDashboardData")
-                // declare the single optional IN param so Spring builds the correct call string,
-                // but we will omit it from the Map when we want "today" behavior
-                .declareParameters(new org.springframework.jdbc.core.SqlParameter("p_ForDate", Types.DATE))
+                .withProcedureName("SP_GetDashboardData")  // <-- wrapper
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ForDate", Types.DATE) // <-- only one IN param
+                )
                 .returningResultSet("#result-set-1", new ColumnMapRowMapper())
                 .returningResultSet("#result-set-2", new ColumnMapRowMapper())
                 .returningResultSet("#result-set-3", new ColumnMapRowMapper())
                 .returningResultSet("#result-set-4", new ColumnMapRowMapper());
     }
+
 
     /** Cached read: stays cached until explicitly refreshed/evicted. */
     @Cacheable(value = "dashboard", key = "'metrics'")
@@ -108,26 +105,16 @@ public class DashboardService {
     @Transactional(readOnly = true)
     protected DashboardPayload loadMetrics(LocalDateTime dateTime) {
         final LocalDate today = LocalDate.now();
+        final LocalDateTime now = (dateTime != null) ? dateTime : LocalDateTime.now();
 
-        // Build IN params:
-        //  - If requested date is today (or null), DO NOT send @p_ForDate at all (SP uses last finished hour)
-        //  - If requested date != today, send @p_ForDate as DATE (SP computes full day)
         MapSqlParameterSource in = new MapSqlParameterSource();
 
-        if (dateTime != null) {
-            LocalDate req = dateTime.toLocalDate();
-            if (!req.isEqual(today)) {
-                // Historical day → full day
-                in.addValue("p_ForDate", java.sql.Date.valueOf(req));
-            } else {
-                // Today → use cutoff logic, still pass null for p_ForDate
-                in.addValue("p_ForDate", null);
-                in.addValue("p_AsOf", java.sql.Timestamp.valueOf(dateTime));
-            }
+// Wrapper logic: NULL => today (cut off to last completed hour inside SP)
+// Non-null & not today => historic full day
+        if (dateTime == null || dateTime.toLocalDate().isEqual(today)) {
+            in.addValue("ForDate", null, Types.DATE);
         } else {
-            // No date provided → today, cutoff logic
-            in.addValue("p_ForDate", null);
-            in.addValue("p_AsOf", java.sql.Timestamp.valueOf(LocalDateTime.now()));
+            in.addValue("ForDate", java.sql.Date.valueOf(dateTime.toLocalDate()), Types.DATE);
         }
 
         List<Map<String, Object>> rs1 = Collections.emptyList();
