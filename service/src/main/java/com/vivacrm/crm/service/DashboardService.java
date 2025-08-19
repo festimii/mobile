@@ -139,6 +139,15 @@ public class DashboardService {
             }
         }
 
+        // ---- Top Pika analytics (rank, share, YoY, gap to #2, top-3 summary) ----
+        final String topStoreName = asString(metricsRow, "TopStoreName", "").trim();
+        final String topStoreOE   = asString(metricsRow, "TopStoreOE", "").trim();
+        final BigDecimal topStoreRevenue = toDecimal(metricsRow.get("TopStoreRevenue"));
+        final BigDecimal totalRevenue    = toDecimal(metricsRow.get("TotalRevenue"));
+
+        TopStoreStats topStats = analyzeTopStore(rs4, "Store", "LastYear", "ThisYear",
+                topStoreName, topStoreRevenue, totalRevenue);
+
         // ---- grouped metrics with sub-metrics ----
         List<Metric> metrics = List.of(
                 m("Shitjet Sod", compactFromMap(metricsRow, "TotalRevenue"), List.of(
@@ -148,21 +157,27 @@ public class DashboardService {
                         m("Dje", compactFromMap(metricsRow, "RevenueYesterday"))
                 )),
 
-                m("Kuponat", compactFromMap(metricsRow, "Transactions"), List.of(
+                m("Top Pika", topStoreOE.isEmpty() ? topStoreName : topStoreOE, List.of(
+                        m("Emri", topStoreName),
+                        m("Shitjet e Pikes", formatCompact(topStoreRevenue)),
+                        m("Kontributi %", topStats.contributionPct),
+                        m("Vs Viti Kaluar", topStats.vsPyPct),
+                        m("Renditja", topStats.rank > 0 ? String.valueOf(topStats.rank) : "n/a"),
+                        m("Diferenca me #2", formatCompact(topStats.gapToSecond)),
+                        m("Top 3 Pika", topStats.top3Summary)
+                )),
+                m("Kuponat   Fiskal", compactFromMap(metricsRow, "Transactions"), List.of(
                         m("Vs Viti Kaluar", pctFromMap(metricsRow, "Transactions", "TransactionsPY") + "%"),
                         m("Viti Kaluar", compactFromMap(metricsRow, "TransactionsPY")),
                         m("Ora Me Trafik", asString(metricsRow, "PeakHour", ""))
-
                 )),
 
                 m("Shporta Mesatare", compactFromMap(metricsRow, "AvgBasketSize"), List.of(
                         m("Vs Viti Kaluar", pctFromMap(metricsRow, "AvgBasketSize", "AvgBasketSizePY") + "%"),
                         m("Viti Kaluar", compactFromMap(metricsRow, "AvgBasketSizePY"))
-                )),
-
-                m("Top Pika", asString(metricsRow, "TopStoreOE", ""), List.of(
-                        m("Shitjet e Pikes", compactFromMap(metricsRow, "TopStoreRevenue"))
                 ))
+
+
         );
 
         // Daily series labels as day-of-week: Mon, Tue, ...
@@ -171,6 +186,101 @@ public class DashboardService {
         List<StoreCompare> storeComparison = mapStores(rs4, "Store", "LastYear", "ThisYear");
 
         return new DashboardPayload(metrics, dailySeries, hourlySeries, storeComparison);
+    }
+
+    // ----------------- Top store analytics -----------------
+    private static final class TopStoreStats {
+        final String contributionPct;      // top store revenue / total revenue
+        final String vsPyPct;              // (thisYear - lastYear)/lastYear
+        final int    rank;                 // 1-based rank among stores by ThisYear
+        final BigDecimal gapToSecond;      // top - second by ThisYear (0 if not applicable)
+        final String top3Summary;          // "1) StoreA: 16.7K; 2) StoreB: 12.3K; 3) StoreC: 9.9K"
+
+        TopStoreStats(String contributionPct, String vsPyPct, int rank, BigDecimal gapToSecond, String top3Summary) {
+            this.contributionPct = contributionPct;
+            this.vsPyPct = vsPyPct;
+            this.rank = rank;
+            this.gapToSecond = gapToSecond;
+            this.top3Summary = top3Summary;
+        }
+    }
+
+    private static TopStoreStats analyzeTopStore(List<Map<String, Object>> rows,
+                                                 String storeCol, String lastYearCol, String thisYearCol,
+                                                 String topStoreName,
+                                                 BigDecimal topStoreRevenue,
+                                                 BigDecimal totalRevenue) {
+        // Normalize rows
+        record Entry(String store, BigDecimal lastYear, BigDecimal thisYear) {}
+        List<Entry> list = new ArrayList<>();
+        if (rows != null) {
+            for (Map<String, Object> r : rows) {
+                String s = String.valueOf(r.getOrDefault(storeCol, "")).trim();
+                BigDecimal ly = toDecimal(r.get(lastYearCol));
+                BigDecimal ty = toDecimal(r.get(thisYearCol));
+                list.add(new Entry(s, ly, ty));
+            }
+        }
+
+        // Sort by ThisYear desc
+        list.sort((a, b) -> b.thisYear.compareTo(a.thisYear));
+
+        // rank and gap to #2
+        int rank = -1;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).store.equalsIgnoreCase(topStoreName)) {
+                rank = i + 1;
+                break;
+            }
+        }
+        if (rank < 0 && !list.isEmpty() && topStoreRevenue.signum() > 0) {
+            // fallback: match by revenue value (closest)
+            BigDecimal bestDiff = null;
+            int bestIdx = -1;
+            for (int i = 0; i < list.size(); i++) {
+                BigDecimal diff = list.get(i).thisYear.subtract(topStoreRevenue).abs();
+                if (bestDiff == null || diff.compareTo(bestDiff) < 0) {
+                    bestDiff = diff; bestIdx = i;
+                }
+            }
+            rank = bestIdx >= 0 ? bestIdx + 1 : -1;
+        }
+
+        BigDecimal gap2 = BigDecimal.ZERO;
+        if (!list.isEmpty() && rank == 1 && list.size() >= 2) {
+            gap2 = list.get(0).thisYear.subtract(list.get(1).thisYear);
+        }
+
+        // vs PY for the top store (if we can locate it)
+        String vsPyPct = "n/a";
+        if (rank > 0) {
+            Entry e = list.get(rank - 1);
+            if (e.lastYear.signum() > 0) {
+                vsPyPct = fmtPct(e.thisYear.subtract(e.lastYear), e.lastYear);
+            } else if (e.thisYear.signum() > 0) {
+                vsPyPct = "100%";
+            } else {
+                vsPyPct = "0%";
+            }
+        }
+
+        // contribution to total
+        String contrib = fmtPct(topStoreRevenue, totalRevenue);
+
+        // top-3 summary
+        StringBuilder sb = new StringBuilder();
+        int topN = Math.min(3, list.size());
+        for (int i = 0; i < topN; i++) {
+            Entry e = list.get(i);
+            if (i > 0) sb.append("; ");
+            sb.append(i + 1).append(") ")
+                    .append(e.store)
+                    .append(": ")
+                    .append(formatCompact(e.thisYear));
+        }
+        String top3 = sb.toString();
+
+        return new TopStoreStats(contrib, vsPyPct, rank, gap2, top3);
     }
 
     // ----------------- helpers -----------------
@@ -324,6 +434,14 @@ public class DashboardService {
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(1, RoundingMode.HALF_UP);
         return pct.stripTrailingZeros().toPlainString();
+    }
+
+    private static String fmtPct(BigDecimal part, BigDecimal whole) {
+        if (whole == null || whole.signum() == 0 || part == null) return "0%";
+        BigDecimal pct = part.divide(whole, 6, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
+        String s = pct.setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+        if ("-0".equals(s)) s = "0";
+        return s + "%";
     }
 
     private static String compactFromMap(Map<String, Object> map, String key) {
