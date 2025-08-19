@@ -21,22 +21,23 @@ class InventoryTab extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).primaryColor,
+          ),
         ),
         const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: metrics
-              .map(
-                (m) => SizedBox(
-                  width: cardWidth,
-                  child: SummaryCard(metric: m),
-                ),
-              )
-              .toList(),
+          children:
+              metrics
+                  .map(
+                    (m) => SizedBox(
+                      width: cardWidth,
+                      child: SummaryCard(metric: m),
+                    ),
+                  )
+                  .toList(),
         ),
         const SizedBox(height: 32),
       ],
@@ -113,7 +114,11 @@ class InventoryTab extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildKpiSection(context, 'Warehouse KPIs', wmsMetrics),
+            _buildKpiSection(
+              context,
+              'Akoma e pa perfunduar te dhena Fake',
+              wmsMetrics,
+            ),
             _buildKpiSection(context, 'Stock KPIs', stockMetrics),
             ListView.separated(
               shrinkWrap: true,
@@ -127,9 +132,10 @@ class InventoryTab extends StatelessWidget {
                   leading: const Icon(Icons.inventory),
                   title: Text(item['name']! as String),
                   subtitle: Text('In stock: ${item['stock']}'),
-                  trailing: isLow
-                      ? const Icon(Icons.warning, color: Colors.redAccent)
-                      : null,
+                  trailing:
+                      isLow
+                          ? const Icon(Icons.warning, color: Colors.redAccent)
+                          : null,
                 );
               },
             ),

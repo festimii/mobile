@@ -23,32 +23,33 @@ class SalesTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Online Sales KPIs",
+            "Akoma e Pa perfunduar te dhena FAKE",
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
-                ),
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
           ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: metrics
-                .map(
-                  (m) => SizedBox(
-                    width: cardWidth,
-                    child: SummaryCard(metric: m),
-                  ),
-                )
-                .toList(),
+            children:
+                metrics
+                    .map(
+                      (m) => SizedBox(
+                        width: cardWidth,
+                        child: SummaryCard(metric: m),
+                      ),
+                    )
+                    .toList(),
           ),
           const SizedBox(height: 32),
           Text(
             "Weekly Sales Trend",
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
-                ),
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).primaryColor,
+            ),
           ),
           const SizedBox(height: 16),
           Card(
@@ -179,9 +180,7 @@ class SalesTab extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: const TabBar(
-          tabs: [Tab(text: 'B2C'), Tab(text: 'B2B')],
-        ),
+        appBar: const TabBar(tabs: [Tab(text: 'B2C'), Tab(text: 'B2B')]),
         body: TabBarView(
           children: [
             _buildContent(context, b2cMetrics, weekSalesB2c, hourSalesB2c),
