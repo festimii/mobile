@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -574,10 +575,46 @@ class _HomeTabState extends State<HomeTab> {
   final ApiService _api = ApiService();
   late Future<DashboardData> _future;
 
+  Timer? _timer;
+  Duration _timeLeft = const Duration(minutes: 11);
+
   @override
   void initState() {
     super.initState();
     _future = _api.fetchDashboard();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_timeLeft.inSeconds <= 1) {
+        _refreshData();
+      } else {
+        setState(() {
+          _timeLeft -= const Duration(seconds: 1);
+        });
+      }
+    });
+  }
+
+  void _refreshData() {
+    setState(() {
+      _future = _api.fetchDashboard();
+      _timeLeft = const Duration(minutes: 11);
+    });
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -585,26 +622,24 @@ class _HomeTabState extends State<HomeTab> {
     return FutureBuilder<DashboardData>(
       future: _future,
       builder: (context, snapshot) {
+        Widget content;
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError || !snapshot.hasData) {
-          return const Center(child: Text('Error loading dashboard'));
-        }
+          content = const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError || !snapshot.hasData) {
+          content = const Center(child: Text('Error loading dashboard'));
+        } else {
+          final data = snapshot.data!;
+          final metrics = data.metrics;
+          final weekSales = data.dailySales;
+          final hourSales = data.hourlySales;
+          final storeSales = data.storeSales;
 
-        final data = snapshot.data!;
-        final metrics = data.metrics;
-        final weekSales = data.dailySales;
-        final hourSales = data.hourlySales;
-        final storeSales = data.storeSales;
+          final double cardWidth =
+              MediaQuery.of(context).size.width > 600
+                  ? 260
+                  : MediaQuery.of(context).size.width / 2 - 22;
 
-        final double cardWidth =
-            MediaQuery.of(context).size.width > 600
-                ? 260
-                : MediaQuery.of(context).size.width / 2 - 22;
-
-        return Scaffold(
-          body: SingleChildScrollView(
+          content = SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,15 +655,14 @@ class _HomeTabState extends State<HomeTab> {
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children:
-                      metrics
-                          .map(
-                            (metric) => SizedBox(
-                              width: cardWidth,
-                              child: SummaryCard(metric: metric),
-                            ),
-                          )
-                          .toList(),
+                  children: metrics
+                      .map(
+                        (metric) => SizedBox(
+                          width: cardWidth,
+                          child: SummaryCard(metric: metric),
+                        ),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 32),
                 Text(
@@ -675,6 +709,21 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ],
             ),
+          );
+        }
+
+        return Scaffold(
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'Refresh in ${_formatDuration(_timeLeft)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              Expanded(child: content),
+            ],
           ),
         );
       },
