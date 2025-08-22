@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../services/api_service.dart';
+import '../../providers/user_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -12,14 +14,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ApiService _api = ApiService();
+  late ApiService _api;
   bool _otpEnabled = false;
   bool _loading = true;
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadOtpStatus();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _api = ApiService(authToken: context.read<UserProvider>().authToken);
+      _loadOtpStatus();
+      _initialized = true;
+    }
   }
 
   Future<void> _loadOtpStatus() async {
