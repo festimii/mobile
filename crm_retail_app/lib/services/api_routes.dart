@@ -1,5 +1,5 @@
 class ApiRoutes {
-  static const baseUrl = 'http://192.168.201.109:8080';
+  static const baseUrl = 'http://192.168.100.63:8080';
   static const login = '/auth/login';
   static const logout = '/auth/logout';
   static const register = '/auth/register';
