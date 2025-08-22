@@ -579,12 +579,21 @@ class _HomeTabState extends State<HomeTab> {
   late Future<DashboardData> _future;
 
   Timer? _timer;
-  Duration _timeLeft = const Duration(minutes: 11);
+  Duration _timeLeft = Duration.zero;
   DateTime? _currentDate;
+
+  Duration _calculateTimeLeft() {
+    final now = DateTime.now();
+    final nextRefresh = now.minute < 5
+        ? DateTime(now.year, now.month, now.day, now.hour, 5)
+        : DateTime(now.year, now.month, now.day, now.hour + 1, 5);
+    return nextRefresh.difference(now);
+  }
 
   @override
   void initState() {
     super.initState();
+    _timeLeft = _calculateTimeLeft();
     _startTimer();
   }
 
@@ -614,7 +623,7 @@ class _HomeTabState extends State<HomeTab> {
 
   void _setFuture() {
     _future = _api.fetchDashboard(date: _currentDate);
-    _timeLeft = const Duration(minutes: 11);
+    _timeLeft = _calculateTimeLeft();
   }
 
   void _refreshData() {
