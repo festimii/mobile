@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,19 @@ public class StoreKpiService {
         int id = toInt(row.get("StoreId"));
         if (kpi != null && id != 0) cachePut(id, kpi);
         return kpi;
+    }
+
+    /** Force-refresh cache for a single store and return fresh KPI. */
+    @CachePut(cacheNames = CACHE_NAME, key = "#storeId")
+    @Transactional(readOnly = true)
+    public StoreKpi refreshStoreKpi(int storeId) {
+        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+        Map<String, Object> row = rows.stream()
+                .filter(r -> Objects.toString(r.get("StoreId"), "").equals(String.valueOf(storeId)))
+                .findFirst()
+                .orElse(Collections.emptyMap());
+
+        return mapRow(row);
     }
 
     @Transactional(readOnly = true)
