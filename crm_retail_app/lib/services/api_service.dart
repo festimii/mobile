@@ -59,6 +59,15 @@ class ApiService {
       );
 
       print('🔄 Login response [${response.statusCode}]: ${response.body}');
+      if (response.statusCode == 200) {
+        try {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final token = data['token'] as String?;
+          if (token != null && token.isNotEmpty) {
+            authToken = token;
+          }
+        } catch (_) {}
+      }
       return response;
     } catch (e, stack) {
       print('❌ HTTP error during login: $e\n$stack');

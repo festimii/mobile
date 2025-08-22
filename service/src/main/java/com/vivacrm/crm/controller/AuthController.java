@@ -13,6 +13,7 @@ import com.vivacrm.crm.user.User;
 import com.vivacrm.crm.user.UserRepository;
 import com.vivacrm.crm.user.UserService;
 import com.vivacrm.crm.user.DeviceTokenService;
+import com.vivacrm.crm.security.JwtService;
 
 import java.time.Duration;
 import java.util.Map;
@@ -25,12 +26,14 @@ public class AuthController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final DeviceTokenService deviceTokenService;
+    private final JwtService jwtService;
 
-    public AuthController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository, DeviceTokenService deviceTokenService) {
+    public AuthController(AuthenticationManager authenticationManager, UserService userService, UserRepository userRepository, DeviceTokenService deviceTokenService, JwtService jwtService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.userRepository = userRepository;
         this.deviceTokenService = deviceTokenService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/register")
@@ -77,6 +80,7 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(username, password));
 
             User user = userRepository.findByUsername(username).orElseThrow();
+            String jwtToken = jwtService.generateToken(username);
 
             if (user.isTotpEnabled()) {
                 System.out.println("🔐 TOTP is enabled for user.");
@@ -95,7 +99,8 @@ public class AuthController {
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
                             .body(Map.of(
                                     "authenticated", true,
-                                    "deviceToken", deviceToken
+                                    "deviceToken", deviceToken,
+                                    "token", jwtToken
                             ));
                 }
 
@@ -128,18 +133,25 @@ public class AuthController {
                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
                             .body(Map.of(
                                     "authenticated", true,
-                                    "deviceToken", newToken
+                                    "deviceToken", newToken,
+                                    "token", jwtToken
                             ));
                 }
 
                 // ✅ OTP accepted but no token stored
                 System.out.println("✅ OTP accepted, but device not remembered.");
-                return ResponseEntity.ok(Map.of("authenticated", true));
+                return ResponseEntity.ok(Map.of(
+                        "authenticated", true,
+                        "token", jwtToken
+                ));
             }
 
 
             System.out.println("✅ TOTP is not enabled. Login successful.");
-            return ResponseEntity.ok(Map.of("authenticated", true));
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", true,
+                    "token", jwtToken
+            ));
 
         } catch (AuthenticationException e) {
             System.out.println("❌ Authentication failed: " + e.getMessage());

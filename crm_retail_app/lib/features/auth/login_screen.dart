@@ -100,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (authToken != null && authToken.isNotEmpty) {
           debugPrint('✅ Auth token received');
           await userProvider.setAuthToken(authToken);
+          _api.authToken = authToken;
         } else {
           debugPrint('ℹ️ No auth token returned.');
         }
