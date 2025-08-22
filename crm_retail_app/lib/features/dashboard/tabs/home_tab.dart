@@ -10,6 +10,7 @@ import '../store_detail_screen.dart';
 import '../../../models/dashboard_models.dart';
 import '../../../services/api_service.dart';
 import '../../../providers/date_provider.dart';
+import '../../../providers/user_provider.dart';
 
 /// =======================
 /// Summary KPI card
@@ -574,7 +575,7 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  final ApiService _api = ApiService();
+  late ApiService _api;
   late Future<DashboardData> _future;
 
   Timer? _timer;
@@ -590,6 +591,7 @@ class _HomeTabState extends State<HomeTab> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _api = ApiService(authToken: context.read<UserProvider>().authToken);
     final date = context.watch<DateProvider>().selectedDate;
     if (_currentDate != date) {
       _currentDate = date;

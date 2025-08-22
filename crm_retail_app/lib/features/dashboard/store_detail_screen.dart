@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/dashboard_models.dart';
 import '../../services/api_service.dart';
 import '../../providers/date_provider.dart';
+import '../../providers/user_provider.dart';
 
 class StoreDetailScreen extends StatefulWidget {
   final StoreSales sales;
@@ -27,8 +28,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
         ),
       ),
       body: FutureBuilder<StoreKpiDetail?>(
-        future:
-            ApiService().fetchStoreKpiDetail(widget.sales.storeId, date: selectedDate),
+        future: ApiService(
+          authToken: context.read<UserProvider>().authToken,
+        ).fetchStoreKpiDetail(widget.sales.storeId, date: selectedDate),
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());

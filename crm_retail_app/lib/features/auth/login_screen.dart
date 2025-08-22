@@ -96,6 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
           debugPrint('ℹ️ No new deviceToken returned.');
         }
 
+        final authToken = data['token'] as String?;
+        if (authToken != null && authToken.isNotEmpty) {
+          debugPrint('✅ Auth token received');
+          await userProvider.setAuthToken(authToken);
+        } else {
+          debugPrint('ℹ️ No auth token returned.');
+        }
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,

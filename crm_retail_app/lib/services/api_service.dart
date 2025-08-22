@@ -7,15 +7,26 @@ import 'api_routes.dart';
 
 /// Basic HTTP client for the real API.
 class ApiService {
-  ApiService({this.baseUrl = ApiRoutes.baseUrl});
+  ApiService({this.baseUrl = ApiRoutes.baseUrl, this.authToken});
 
   final String baseUrl;
+  String? authToken;
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
   Uri _uriWithDate(String path, DateTime? date) {
     if (date == null) return _uri(path);
     final formatted = date.toIso8601String();
     return Uri.parse('$baseUrl$path?forDate=$formatted');
+  }
+
+  Map<String, String> _authHeaders([Map<String, String>? headers]) {
+    final map = <String, String>{
+      if (headers != null) ...headers,
+    };
+    if (authToken != null && authToken!.isNotEmpty) {
+      map['Authorization'] = 'Bearer $authToken';
+    }
+    return map;
   }
 
   /// Attempts to authenticate a user. Returns the raw HTTP response so
@@ -56,7 +67,10 @@ class ApiService {
   }
 
   Future<List<SummaryMetric>> fetchMetrics({DateTime? date}) async {
-    final res = await http.get(_uriWithDate(ApiRoutes.metrics, date));
+    final res = await http.get(
+      _uriWithDate(ApiRoutes.metrics, date),
+      headers: _authHeaders(),
+    );
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final metricsJson = data['metrics'] as List<dynamic>? ?? [];
     return metricsJson.map((e) {
@@ -85,7 +99,10 @@ class ApiService {
   /// comparisons. The backend returns a `DashboardPayload` object which is
   /// mapped into strongly typed models for the UI layer.
   Future<DashboardData> fetchDashboard({DateTime? date}) async {
-    final res = await http.get(_uriWithDate(ApiRoutes.metrics, date));
+    final res = await http.get(
+      _uriWithDate(ApiRoutes.metrics, date),
+      headers: _authHeaders(),
+    );
     final data = jsonDecode(res.body) as Map<String, dynamic>;
 
     final metrics =
@@ -162,7 +179,10 @@ class ApiService {
 
   Future<StoreKpiDetail?> fetchStoreKpiDetail(int storeId,
       {DateTime? date}) async {
-    final res = await http.get(_uriWithDate(ApiRoutes.storeKpi(storeId), date));
+    final res = await http.get(
+      _uriWithDate(ApiRoutes.storeKpi(storeId), date),
+      headers: _authHeaders(),
+    );
     if (res.statusCode != 200) return null;
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiDetail.fromJson(data);
@@ -301,7 +321,10 @@ class ApiService {
   }
 
   Future<List<StoreSales>> fetchStoreSales() async {
-    final res = await http.get(_uri(ApiRoutes.storeSales));
+    final res = await http.get(
+      _uri(ApiRoutes.storeSales),
+      headers: _authHeaders(),
+    );
     final data = jsonDecode(res.body) as List<dynamic>;
     return data
         .map(
@@ -317,7 +340,10 @@ class ApiService {
 
   /// Fetches detailed KPI metrics for a single store.
   Future<StoreKpiMetrics> fetchStoreKpi(int storeId) async {
-    final res = await http.get(_uri(ApiRoutes.storeKpi(storeId)));
+    final res = await http.get(
+      _uri(ApiRoutes.storeKpi(storeId)),
+      headers: _authHeaders(),
+    );
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiMetrics.fromJson(data);
   }
@@ -326,6 +352,7 @@ class ApiService {
   Future<bool> fetchOtpStatus(String username) async {
     final res = await http.get(
       Uri.parse('$baseUrl${ApiRoutes.totpStatus}?username=$username'),
+      headers: _authHeaders(),
     );
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -338,7 +365,7 @@ class ApiService {
   Future<String?> enableOtp(String username) async {
     final res = await http.post(
       _uri(ApiRoutes.enableTotp),
-      headers: {'Content-Type': 'application/json'},
+      headers: _authHeaders({'Content-Type': 'application/json'}),
       body: jsonEncode({'username': username}),
     );
     if (res.statusCode == 200) {
@@ -352,7 +379,7 @@ class ApiService {
   Future<bool> disableOtp(String username) async {
     final res = await http.post(
       _uri(ApiRoutes.disableTotp),
-      headers: {'Content-Type': 'application/json'},
+      headers: _authHeaders({'Content-Type': 'application/json'}),
       body: jsonEncode({'username': username}),
     );
     return res.statusCode == 200;
