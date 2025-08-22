@@ -20,10 +20,10 @@ public class CacheRefreshScheduler {
     }
 
     /**
-     * Runs shortly after the top of each hour (e.g. 10:01).
+     * Runs five minutes after the top of each hour (e.g. 10:05).
      * Zone can be omitted if you want server default.
      */
-    @Scheduled(cron = "${app.cache.refresh.cron:0 1 * * * *}", zone = "Europe/Belgrade")
+    @Scheduled(cron = "${app.cache.refresh.cron:0 5 * * * *}", zone = "Europe/Belgrade")
     @Transactional(readOnly = true)
     public void refreshAll() {
         // Refresh dashboard payload cache
