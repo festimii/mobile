@@ -584,9 +584,8 @@ class _HomeTabState extends State<HomeTab> {
 
   Duration _calculateTimeLeft() {
     final now = DateTime.now();
-    final nextRefresh = now.minute < 5
-        ? DateTime(now.year, now.month, now.day, now.hour, 5)
-        : DateTime(now.year, now.month, now.day, now.hour + 1, 5);
+    // Refresh exactly at the start of each next hour (HH:00:00)
+    final nextRefresh = DateTime(now.year, now.month, now.day, now.hour + 1);
     return nextRefresh.difference(now);
   }
 
