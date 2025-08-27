@@ -1,6 +1,7 @@
 // src/main/java/com/vivacrm/crm/controller/DashboardController.java
 package com.vivacrm.crm.controller;
 
+import com.vivacrm.crm.schedule.CacheRefreshScheduler;
 import com.vivacrm.crm.service.DashboardService;
 import com.vivacrm.crm.service.dto.DashboardPayload;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -13,7 +14,13 @@ import java.time.LocalDateTime;
 public class DashboardController {
 
     private final DashboardService dashboardService;
-    public DashboardController(DashboardService dashboardService) { this.dashboardService = dashboardService; }
+    private final CacheRefreshScheduler refreshScheduler;
+
+    public DashboardController(DashboardService dashboardService,
+                               CacheRefreshScheduler refreshScheduler) {
+        this.dashboardService = dashboardService;
+        this.refreshScheduler = refreshScheduler;
+    }
 
     /** Returns cached metrics unless `refresh=true` is provided. */
     @GetMapping("/metrics")
@@ -21,6 +28,8 @@ public class DashboardController {
             @RequestParam(name = "refresh", defaultValue = "false") boolean refresh,
             @RequestParam(name = "forDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime forDate) {
+
+        refreshScheduler.refreshIfStale();
 
         if (forDate != null) {
             return dashboardService.getMetrics(forDate);
