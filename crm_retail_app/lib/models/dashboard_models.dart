@@ -88,10 +88,10 @@ class StoreKpiMetrics {
   final double avgBasketDiff;
   final int peakHour;
   final String peakHourLabel;
-  final double peakHourRevenue;
-  final String topArtCode;
-  final double topArtRevenue;
-  final String topArtName;
+  final double? peakHourRevenue;
+  final String? topArtCode;
+  final double? topArtRevenue;
+  final String? topArtName;
 
   StoreKpiMetrics({
     required this.storeId,
@@ -109,10 +109,10 @@ class StoreKpiMetrics {
     required this.avgBasketDiff,
     required this.peakHour,
     required this.peakHourLabel,
-    required this.peakHourRevenue,
-    required this.topArtCode,
-    required this.topArtRevenue,
-    required this.topArtName,
+    this.peakHourRevenue,
+    this.topArtCode,
+    this.topArtRevenue,
+    this.topArtName,
   });
 
   factory StoreKpiMetrics.fromJson(Map<String, dynamic> json) {
@@ -132,10 +132,10 @@ class StoreKpiMetrics {
       avgBasketDiff: (json['avgBasketDiff'] as num).toDouble(),
       peakHour: (json['peakHour'] as num).toInt(),
       peakHourLabel: json['peakHourLabel'] as String,
-      peakHourRevenue: (json['peakHourRevenue'] as num).toDouble(),
-      topArtCode: json['topArtCode'] as String,
-      topArtRevenue: (json['topArtRevenue'] as num).toDouble(),
-      topArtName: json['topArtName'] as String,
+      peakHourRevenue: (json['peakHourRevenue'] as num?)?.toDouble(),
+      topArtCode: json['topArtCode'] as String?,
+      topArtRevenue: (json['topArtRevenue'] as num?)?.toDouble(),
+      topArtName: json['topArtName'] as String?,
     );
   }
 }
@@ -175,10 +175,10 @@ class StoreKpiDetail {
   final double avgBasketDiff;
   final int peakHour;
   final String peakHourLabel;
-  final double peakHourRevenue;
-  final String topArtCode;
-  final double topArtRevenue;
-  final String topArtName;
+  final double? peakHourRevenue;
+  final String? topArtCode;
+  final double? topArtRevenue;
+  final String? topArtName;
 
   StoreKpiDetail({
     required this.storeId,
@@ -196,10 +196,10 @@ class StoreKpiDetail {
     required this.avgBasketDiff,
     required this.peakHour,
     required this.peakHourLabel,
-    required this.peakHourRevenue,
-    required this.topArtCode,
-    required this.topArtRevenue,
-    required this.topArtName,
+    this.peakHourRevenue,
+    this.topArtCode,
+    this.topArtRevenue,
+    this.topArtName,
   });
 
   factory StoreKpiDetail.fromJson(Map<String, dynamic> json) {
@@ -219,10 +219,10 @@ class StoreKpiDetail {
       avgBasketDiff: (json['avgBasketDiff'] as num).toDouble(),
       peakHour: (json['peakHour'] as num).toInt(),
       peakHourLabel: json['peakHourLabel'] as String,
-      peakHourRevenue: (json['peakHourRevenue'] as num).toDouble(),
-      topArtCode: json['topArtCode'] as String,
-      topArtRevenue: (json['topArtRevenue'] as num).toDouble(),
-      topArtName: json['topArtName'] as String,
+      peakHourRevenue: (json['peakHourRevenue'] as num?)?.toDouble(),
+      topArtCode: json['topArtCode'] as String?,
+      topArtRevenue: (json['topArtRevenue'] as num?)?.toDouble(),
+      topArtName: json['topArtName'] as String?,
     );
   }
 }
