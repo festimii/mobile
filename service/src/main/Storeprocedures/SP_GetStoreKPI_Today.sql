@@ -16,11 +16,22 @@ Create PROCEDURE [dbo].[SP_GetStoreKPI_Today]
     @ForDate                 date       = NULL,   -- if NULL → derived from @AsOf or GETDATE()
     @AsOf                    datetime   = NULL,   -- optional; enables PARTIAL mode when provided
     @CutoffHour              int        = NULL,   -- optional [0..23]; default HOUR(@AsOf-1h) in PARTIAL mode
+    @DatePick                nvarchar(32) = NULL, -- optional semantic picker (TODAY only)
     @ExcludedTokenStampSPro  bigint     = 160621121005298
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
+
+    IF @DatePick IS NOT NULL
+    BEGIN
+        DECLARE @p nvarchar(32) = UPPER(LTRIM(RTRIM(@DatePick)));
+        IF @p <> N'TODAY'
+        BEGIN
+            RAISERROR('Invalid @DatePick for SP_GetStoreKPI_Today. Use TODAY or omit.',16,1);
+            RETURN;
+        END
+    END;
 
     ----------------------------------------------------------------------
     -- 0) Resolve anchors & cutoff (same rules as dashboard proc)

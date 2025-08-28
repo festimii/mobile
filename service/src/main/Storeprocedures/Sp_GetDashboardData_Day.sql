@@ -10,27 +10,66 @@ GO
 
 
 CREATE PROCEDURE [dbo].[SP_GetDashboardData_Day]
-    @ForDate date  -- required: the calendar date to compute (full day, no cutoff)
+    @ForDate                 date        = NULL,   -- optional explicit date
+    @AsOf                    datetime    = NULL,   -- optional reference timestamp
+    @CutoffHour              int         = NULL,   -- optional [0..23]; default HOUR(@AsOf-1h) in PARTIAL mode
+    @DatePick                nvarchar(32)= NULL,   -- optional semantic picker
+    @ExcludedTokenStampSPro  bigint      = 160621121005298
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    IF @ForDate IS NULL
+    DECLARE @AsOfLocal datetime = ISNULL(@AsOf, GETDATE());
+    DECLARE @TodayDate date    = CONVERT(date, @AsOfLocal);
+
+    IF @DatePick IS NOT NULL
     BEGIN
-        RAISERROR('ForDate is required.', 16, 1);
+        DECLARE @p nvarchar(32) = UPPER(LTRIM(RTRIM(@DatePick)));
+        IF @p = N'TODAY'
+            SET @ForDate = @TodayDate;
+        ELSE IF @p = N'YESTERDAY'
+            SET @ForDate = DATEADD(day, -1, @TodayDate);
+        ELSE IF @p = N'PY'
+            SET @ForDate = DATEADD(year, -1, @TodayDate);
+        ELSE IF @p LIKE N'D+%' OR @p LIKE N'D-%'
+        BEGIN
+            DECLARE @sign int = CASE WHEN SUBSTRING(@p,2,1)='+' THEN 1 ELSE -1 END;
+            DECLARE @num  int = TRY_CAST(SUBSTRING(@p,3, LEN(@p)-2) AS int);
+            IF @num IS NULL
+            BEGIN
+                RAISERROR('Invalid @DatePick relative format. Use D+N or D-N (e.g., D+3, D-2).',16,1);
+                RETURN;
+            END
+            SET @ForDate = DATEADD(day, @sign * @num, @TodayDate);
+        END
+        ELSE
+        BEGIN
+            SET @ForDate = TRY_CONVERT(date, @DatePick, 23);
+            IF @ForDate IS NULL
+            BEGIN
+                RAISERROR('Invalid @DatePick. Use TODAY, YESTERDAY, PY, D+N, D-N, or YYYY-MM-DD.',16,1);
+                RETURN;
+            END
+        END
+    END
+
+    DECLARE @WorkDate date = ISNULL(@ForDate, @TodayDate);
+    DECLARE @Yesterday date = DATEADD(day, -1, @WorkDate);
+    DECLARE @PrevYearSameDate date = DATEADD(year, -1, @WorkDate);
+
+    IF @WorkDate > @TodayDate
+    BEGIN
+        RAISERROR('ForDate cannot be in the future relative to @AsOf.',16,1);
         RETURN;
     END
 
-    ------------------------------------------------------------
-    -- Anchors (historic mode: full day)
-    ------------------------------------------------------------
-    DECLARE 
-        @WorkDate               date     = @ForDate,
-        @Yesterday              date     = DATEADD(day, -1, @ForDate),
-        @PrevYearSameDate       date     = DATEADD(year, -1, @ForDate),
-        @CutoffHour             int      = NULL,   -- FULL DAY → return NULL to signal no cutoff
-        @ExcludedTokenStampSPro bigint   = 160621121005298;
+    DECLARE @IsFullDay bit = CASE WHEN @AsOf IS NULL AND @CutoffHour IS NULL THEN 1 ELSE 0 END;
+    SET @CutoffHour = CASE WHEN @IsFullDay = 1 THEN 23
+                           ELSE ISNULL(@CutoffHour, DATEPART(hour, DATEADD(hour, -1, @AsOfLocal)))
+                      END;
+    IF @CutoffHour < 0  SET @CutoffHour = 0;
+    IF @CutoffHour > 23 SET @CutoffHour = 23;
 
     ------------------------------------------------------------
     -- Output aggregates
@@ -54,7 +93,7 @@ BEGIN
         @PeakHourLabel             varchar(6)    = NULL;
 
     ------------------------------------------------------------
-    -- Sales @WorkDate (FULL DAY)
+    -- Sales @WorkDate up to @CutoffHour
     ------------------------------------------------------------
     IF OBJECT_ID('tempdb..#SalesDay') IS NOT NULL DROP TABLE #SalesDay;
     SELECT
@@ -73,6 +112,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid = @WorkDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
     GROUP BY p.Sifra_Oe, DATEPART(hour, p.DatumVreme);
 
     SELECT 
@@ -83,7 +123,7 @@ BEGIN
     SET @AvgBasketSize = CASE WHEN @Transactions > 0 THEN @TotalRevenue / @Transactions ELSE NULL END;
 
     ------------------------------------------------------------
-    -- PY & Yesterday (FULL DAY)
+    -- PY & Yesterday (same cutoff)
     ------------------------------------------------------------
     IF OBJECT_ID('tempdb..#SalesPY') IS NOT NULL DROP TABLE #SalesPY;
     SELECT
@@ -101,6 +141,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid = @PrevYearSameDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
     GROUP BY DATEPART(hour, p.DatumVreme);
 
     SELECT 
@@ -126,6 +167,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid = @Yesterday
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
     GROUP BY DATEPART(hour, p.DatumVreme);
 
     SELECT 
@@ -159,6 +201,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid BETWEEN DATEADD(day,-6,@WorkDate) AND @WorkDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND (p.Datum_Evid < @WorkDate OR DATEPART(hour, p.DatumVreme) <= @CutoffHour)
     GROUP BY p.Datum_Evid;
 
     ------------------------------------------------------------
@@ -181,6 +224,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid = @WorkDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
     GROUP BY DATEPART(hour, p.DatumVreme);
 
     SELECT TOP (1)
@@ -208,6 +252,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid = @WorkDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
     GROUP BY p.Sifra_Oe;
 
     SELECT
@@ -219,6 +264,7 @@ BEGIN
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
     WHERE p.Datum_Evid = @PrevYearSameDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
+      AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
     GROUP BY p.Sifra_Oe;
 
     IF OBJECT_ID('tempdb..#KeyOe') IS NOT NULL DROP TABLE #KeyOe;
