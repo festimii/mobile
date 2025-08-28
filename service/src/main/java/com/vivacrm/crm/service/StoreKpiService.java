@@ -8,12 +8,14 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -128,13 +130,23 @@ public class StoreKpiService {
         LocalDateTime queryTime = (dateTime != null ? dateTime : now)
                 .withMinute(0).withSecond(0).withNano(0);
 
+        java.sql.Date forDate = null;
+        Timestamp asOf = null;
         if (dateTime == null || queryTime.toLocalDate().isEqual(today)) {
-            Timestamp asOf = Timestamp.valueOf(queryTime);
-            return jdbc.queryForList("EXEC SP_GetStoreKPI @ForDate=?, @AsOf=?", null, asOf);
+            asOf = Timestamp.valueOf(queryTime);
         } else {
-            java.sql.Date forDate = java.sql.Date.valueOf(queryTime.toLocalDate());
-            return jdbc.queryForList("EXEC SP_GetStoreKPI @ForDate=?, @AsOf=?", forDate, null);
+            forDate = java.sql.Date.valueOf(queryTime.toLocalDate());
         }
+
+        final java.sql.Date fd = forDate;
+        final Timestamp ao = asOf;
+        return jdbc.query(
+                "EXEC SP_GetStoreKPI @ForDate=?, @AsOf=?",
+                ps -> {
+                    if (fd == null) ps.setNull(1, Types.DATE); else ps.setDate(1, fd);
+                    if (ao == null) ps.setNull(2, Types.TIMESTAMP); else ps.setTimestamp(2, ao);
+                },
+                new ColumnMapRowMapper());
     }
 
     private Cache getCache() { return cacheManager.getCache(CACHE_NAME); }
