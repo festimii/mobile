@@ -10,18 +10,37 @@ GO
 
 
 CREATE PROCEDURE [dbo].[SP_GetDashboardData_Today]
+    @ForDate                 date       = NULL,   -- if NULL → derived from @AsOf or GETDATE()
+    @AsOf                    datetime   = NULL,   -- optional; enables PARTIAL mode when provided
+    @CutoffHour              int        = NULL,   -- optional [0..23]; default HOUR(@AsOf-1h) in PARTIAL mode
+    @DatePick                nvarchar(32) = NULL, -- optional semantic picker (TODAY only)
+    @ExcludedTokenStampSPro  bigint     = 160621121005298
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    DECLARE 
-        @AsOf                   datetime = GETDATE(),
-        @Today                  date     = CONVERT(date, GETDATE()),
-        @Yesterday              date     = CONVERT(date, DATEADD(day, -1, GETDATE())),
-        @PrevYearSameDate       date     = CONVERT(date, DATEADD(year, -1, GETDATE())),
-        @CutoffHour             int      = DATEPART(hour, DATEADD(hour, -0, GETDATE())),
-        @ExcludedTokenStampSPro bigint   = 160621121005298;
+    IF @DatePick IS NOT NULL
+    BEGIN
+        DECLARE @p nvarchar(32) = UPPER(LTRIM(RTRIM(@DatePick)));
+        IF @p <> N'TODAY'
+        BEGIN
+            RAISERROR('Invalid @DatePick for SP_GetDashboardData_Today. Use TODAY or omit.',16,1);
+            RETURN;
+        END
+    END;
+
+    DECLARE @AsOfLocal  datetime = ISNULL(@AsOf, GETDATE());
+    DECLARE @WorkDate   date     = ISNULL(@ForDate, CONVERT(date, @AsOfLocal));
+    DECLARE @Yesterday  date     = DATEADD(day, -1, @WorkDate);
+    DECLARE @PrevYearSameDate date = DATEADD(year, -1, @WorkDate);
+
+    DECLARE @IsFullDay bit = CASE WHEN @AsOf IS NULL AND @CutoffHour IS NULL THEN 1 ELSE 0 END;
+    SET @CutoffHour = CASE WHEN @IsFullDay = 1 THEN 23
+                           ELSE ISNULL(@CutoffHour, DATEPART(hour, DATEADD(hour, -1, @AsOfLocal)))
+                      END;
+    IF @CutoffHour < 0  SET @CutoffHour = 0;
+    IF @CutoffHour > 23 SET @CutoffHour = 23;
 
     DECLARE 
         @TotalRevenue              decimal(19,2) = 0,
@@ -61,7 +80,7 @@ BEGIN
      AND s.Grp_Kasa = p.Grp_Kasa
      AND s.BrKasa   = p.BrKasa
      AND s.Broj_Ska = p.Broj_Ska
-    WHERE p.Datum_Evid = @Today
+    WHERE p.Datum_Evid = @WorkDate
       AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
     GROUP BY p.Sifra_Oe, DATEPART(hour, p.DatumVreme);
@@ -136,7 +155,7 @@ BEGIN
     IF OBJECT_ID('tempdb..#Days') IS NOT NULL DROP TABLE #Days;
     CREATE TABLE #Days (D date PRIMARY KEY);
     INSERT INTO #Days(D)
-    SELECT DATEADD(day, v, @Today)
+    SELECT DATEADD(day, v, @WorkDate)
     FROM (VALUES(-6),(-5),(-4),(-3),(-2),(-1),(0)) AS t(v);
 
     IF OBJECT_ID('tempdb..#Rev') IS NOT NULL DROP TABLE #Rev;
@@ -147,9 +166,9 @@ BEGIN
     FROM Promet p WITH (NOLOCK)
     JOIN SPromet s WITH (NOLOCK)
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
-    WHERE p.Datum_Evid BETWEEN DATEADD(day,-6,@Today) AND @Today
+    WHERE p.Datum_Evid BETWEEN DATEADD(day,-6,@WorkDate) AND @WorkDate
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
-      AND (p.Datum_Evid < @Today OR DATEPART(hour, p.DatumVreme) <= @CutoffHour)
+      AND (p.Datum_Evid < @WorkDate OR DATEPART(hour, p.DatumVreme) <= @CutoffHour)
     GROUP BY p.Datum_Evid;
 
     /* Hourly revenue today + PeakHour (0..@CutoffHour) */
@@ -168,7 +187,7 @@ BEGIN
     FROM Promet p WITH (NOLOCK)
     JOIN SPromet s WITH (NOLOCK)
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
-    WHERE p.Datum_Evid = @Today
+    WHERE p.Datum_Evid = @WorkDate
       AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
     GROUP BY DATEPART(hour, p.DatumVreme);
@@ -194,7 +213,7 @@ BEGIN
     FROM Promet p WITH (NOLOCK)
     JOIN SPromet s WITH (NOLOCK)
       ON s.Sifra_Oe = p.Sifra_Oe AND s.Grp_Kasa = p.Grp_Kasa AND s.BrKasa = p.BrKasa AND s.Broj_Ska = p.Broj_Ska
-    WHERE p.Datum_Evid = @Today
+    WHERE p.Datum_Evid = @WorkDate
       AND DATEPART(hour, p.DatumVreme) <= @CutoffHour
       AND (s.TokenStampSPro IS NULL OR s.TokenStampSPro <> @ExcludedTokenStampSPro)
     GROUP BY p.Sifra_Oe;
