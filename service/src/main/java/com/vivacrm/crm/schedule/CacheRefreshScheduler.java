@@ -3,35 +3,29 @@ package com.vivacrm.crm.schedule;
 
 import com.vivacrm.crm.service.DashboardService;
 import com.vivacrm.crm.service.StoreKpiService;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 @Component
 public class CacheRefreshScheduler {
 
     private final DashboardService dashboardService;
     private final StoreKpiService storeKpiService;
+    private final Duration refreshInterval;
 
-    /** Tracks last hour when caches were refreshed. */
+    /** Tracks last time when caches were refreshed. */
     private LocalDateTime lastRefresh = LocalDateTime.MIN;
 
     public CacheRefreshScheduler(DashboardService dashboardService,
-                                 StoreKpiService storeKpiService) {
+                                 StoreKpiService storeKpiService,
+                                 @Value("${app.cache.refresh.interval:PT1H}") Duration refreshInterval) {
         this.dashboardService = dashboardService;
         this.storeKpiService = storeKpiService;
-    }
-
-    /**
-     * Runs at the top of each hour (e.g. 10:00).
-     * Zone can be omitted if you want server default.
-     */
-    @Scheduled(cron = "${app.cache.refresh.cron:0 0 * * * *}", zone = "Europe/Belgrade")
-    public void scheduledRefresh() {
-        refreshAll();
+        this.refreshInterval = refreshInterval;
     }
 
     /** Refresh caches for dashboard payload and store KPI entries. */
@@ -45,16 +39,17 @@ public class CacheRefreshScheduler {
             storeKpiService.refreshAllStores();
         } catch (Exception ignore) { /* log if desired */ }
 
-        lastRefresh = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
+        lastRefresh = LocalDateTime.now();
     }
 
     /**
-     * Fallback for environments where cron jobs are not executed (e.g. Windows
-     * servers). This triggers a refresh once per hour when invoked.
+     * Windows-friendly refresher invoked on incoming requests. Ensures caches
+     * are updated once per configured interval even when scheduled jobs are
+     * unavailable.
      */
     public synchronized void refreshIfStale() {
-        LocalDateTime nowHour = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
-        if (lastRefresh.isBefore(nowHour)) {
+        LocalDateTime now = LocalDateTime.now();
+        if (Duration.between(lastRefresh, now).compareTo(refreshInterval) >= 0) {
             refreshAll();
         }
     }

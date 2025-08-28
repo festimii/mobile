@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,16 +89,6 @@ public class DashboardService {
     /** Evict cached payload (manual reset). */
     @CacheEvict(value = "dashboard", key = "'metrics'")
     public void resetMetrics() { /* no-op */ }
-
-    /**
-     * Auto-refresh today's metrics at the top of every hour
-     * (e.g. 10:00, 11:00). Historical dates remain cached indefinitely.
-     */
-    @Scheduled(cron = "0 0 * * * *", zone = "Europe/Belgrade")
-    @Transactional(readOnly = true)
-    public void refreshMetricsHourly() {
-        refreshMetrics();
-    }
 
     // ----------------- internal loader -----------------
     @Transactional(readOnly = true)
