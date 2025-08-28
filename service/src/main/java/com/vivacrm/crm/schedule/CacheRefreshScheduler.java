@@ -26,10 +26,10 @@ public class CacheRefreshScheduler {
     }
 
     /**
-     * Runs five minutes after the top of each hour (e.g. 10:05).
+     * Runs at the top of each hour (e.g. 10:00).
      * Zone can be omitted if you want server default.
      */
-    @Scheduled(cron = "${app.cache.refresh.cron:0 5 * * * *}", zone = "Europe/Belgrade")
+    @Scheduled(cron = "${app.cache.refresh.cron:0 0 * * * *}", zone = "Europe/Belgrade")
     public void scheduledRefresh() {
         refreshAll();
     }
