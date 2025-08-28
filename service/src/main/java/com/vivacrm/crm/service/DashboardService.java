@@ -92,10 +92,10 @@ public class DashboardService {
     public void resetMetrics() { /* no-op */ }
 
     /**
-     * Auto-refresh today's metrics shortly after the top of every hour
-     * (e.g. 10:01, 11:01). Historical dates remain cached indefinitely.
+     * Auto-refresh today's metrics at the top of every hour
+     * (e.g. 10:00, 11:00). Historical dates remain cached indefinitely.
      */
-    @Scheduled(cron = "0 1 * * * *", zone = "Europe/Belgrade")
+    @Scheduled(cron = "0 0 * * * *", zone = "Europe/Belgrade")
     @Transactional(readOnly = true)
     public void refreshMetricsHourly() {
         refreshMetrics();
