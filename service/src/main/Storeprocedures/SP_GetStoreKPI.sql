@@ -21,7 +21,7 @@ BEGIN
     SET XACT_ABORT ON;
 
     DECLARE @Today date = CONVERT(date, GETDATE());
-    DECLARE @HasDatePick bit =
+    DECLARE @HasDatePickToday bit =
     (
         SELECT CASE WHEN EXISTS
         (
@@ -32,11 +32,22 @@ BEGIN
         )
         THEN 1 ELSE 0 END
     );
+    DECLARE @HasDatePickDay bit =
+    (
+        SELECT CASE WHEN EXISTS
+        (
+            SELECT 1
+            FROM sys.parameters
+            WHERE object_id = OBJECT_ID(N'dbo.SP_GetStoreKPI_Day')
+              AND name = N'@DatePick'
+        )
+        THEN 1 ELSE 0 END
+    );
 
     IF @ForDate IS NULL OR @ForDate = @Today
     BEGIN
         -- Today / partial path
-        IF @HasDatePick = 1
+        IF @HasDatePickToday = 1
         BEGIN
             EXEC dbo.SP_GetStoreKPI_Today
                  @ForDate                = @ForDate,
@@ -57,18 +68,18 @@ BEGIN
     ELSE
     BEGIN
         -- Historic full-day path (force full-day: ignore @AsOf/@CutoffHour/@DatePick)
-        IF @HasDatePick = 1
+        IF @HasDatePickDay = 1
         BEGIN
-            EXEC dbo.SP_GetStoreKPI_Today
+            EXEC dbo.SP_GetStoreKPI_Day
                  @ForDate                = @ForDate,
                  @AsOf                   = NULL,
                  @CutoffHour             = NULL,
-                 @DatePick               = NULL,
+                 @DatePick               = @DatePick,
                  @ExcludedTokenStampSPro = @ExcludedTokenStampSPro;
         END
         ELSE
         BEGIN
-            EXEC dbo.SP_GetStoreKPI_Today
+            EXEC dbo.SP_GetStoreKPI_Day
                  @ForDate                = @ForDate,
                  @AsOf                   = NULL,
                  @CutoffHour             = NULL,
