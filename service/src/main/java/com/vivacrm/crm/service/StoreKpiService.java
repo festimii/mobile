@@ -125,7 +125,8 @@ public class StoreKpiService {
     private List<Map<String, Object>> fetchRows(LocalDateTime dateTime) {
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
-        LocalDateTime queryTime = dateTime != null ? dateTime : now;
+        LocalDateTime queryTime = (dateTime != null ? dateTime : now)
+                .withMinute(0).withSecond(0).withNano(0);
 
         if (dateTime == null || queryTime.toLocalDate().isEqual(today)) {
             Timestamp asOf = Timestamp.valueOf(queryTime);
