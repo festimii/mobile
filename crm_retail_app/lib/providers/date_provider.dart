@@ -2,15 +2,26 @@ import 'package:flutter/material.dart';
 
 /// Holds the currently selected date for dashboard calculations.
 class DateProvider extends ChangeNotifier {
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = _normalize(DateTime.now());
 
   DateTime get selectedDate => _selectedDate;
 
   /// Updates the selected date/time and notifies listeners if changed.
   void setDate(DateTime date) {
-    if (!_selectedDate.isAtSameMomentAs(date)) {
-      _selectedDate = date;
+    final normalized = _normalize(date);
+    if (!_selectedDate.isAtSameMomentAs(normalized)) {
+      _selectedDate = normalized;
       notifyListeners();
     }
+  }
+
+  /// Returns the start of the current hour for today's date
+  /// or midnight for historical dates.
+  static DateTime _normalize(DateTime date) {
+    final now = DateTime.now();
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return DateTime(now.year, now.month, now.day, now.hour);
+    }
+    return DateTime(date.year, date.month, date.day);
   }
 }

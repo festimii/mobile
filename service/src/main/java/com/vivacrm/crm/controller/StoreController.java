@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/stores")
@@ -26,8 +29,14 @@ public class StoreController {
 
     @GetMapping("/{storeId}/kpi")
     public StoreKpi kpi(@PathVariable int storeId,
-                        @RequestParam(name = "refresh", defaultValue = "false") boolean refresh) {
+                        @RequestParam(name = "refresh", defaultValue = "false") boolean refresh,
+                        @RequestParam(name = "forDate", required = false)
+                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime forDate) {
         refreshScheduler.refreshIfStale();
+
+        if (forDate != null) {
+            return kpiService.getStoreKpi(storeId, forDate);
+        }
         return refresh ? kpiService.refreshStoreKpi(storeId) : kpiService.getStoreKpi(storeId);
     }
 
