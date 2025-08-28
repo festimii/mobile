@@ -192,7 +192,7 @@ class ApiService {
       _uriWithDate(ApiRoutes.storeKpi(storeId), date),
       headers: _authHeaders(),
     );
-    if (res.statusCode != 200) return null;
+    if (res.statusCode != 200 || res.body.isEmpty) return null;
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiDetail.fromJson(data);
   }
@@ -353,6 +353,9 @@ class ApiService {
       _uri(ApiRoutes.storeKpi(storeId)),
       headers: _authHeaders(),
     );
+    if (res.statusCode != 200 || res.body.isEmpty) {
+      throw Exception('Failed to load store KPI');
+    }
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return StoreKpiMetrics.fromJson(data);
   }
