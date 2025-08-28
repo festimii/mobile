@@ -52,7 +52,8 @@ public class DashboardService {
                 .withProcedureName("SP_GetDashboardData")  // <-- wrapper
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
-                        new SqlParameter("ForDate", Types.DATE) // <-- only one IN param
+                        new SqlParameter("ForDate", Types.DATE),
+                        new SqlParameter("AsOf",    Types.TIMESTAMP)
                 )
                 .returningResultSet("#result-set-1", new ColumnMapRowMapper())
                 .returningResultSet("#result-set-2", new ColumnMapRowMapper())
@@ -95,7 +96,8 @@ public class DashboardService {
     protected DashboardPayload loadMetrics(LocalDateTime dateTime) {
         final LocalDateTime now = LocalDateTime.now();
         final LocalDate today = now.toLocalDate();
-        final LocalDateTime queryTime = (dateTime != null) ? dateTime : now;
+        final LocalDateTime queryTime = ((dateTime != null) ? dateTime : now)
+                .withMinute(0).withSecond(0).withNano(0);
 
         MapSqlParameterSource in = new MapSqlParameterSource();
 
@@ -103,8 +105,10 @@ public class DashboardService {
 // Non-null & not today => historic full day
         if (dateTime == null || queryTime.toLocalDate().isEqual(today)) {
             in.addValue("ForDate", null, Types.DATE);
+            in.addValue("AsOf", java.sql.Timestamp.valueOf(queryTime), Types.TIMESTAMP);
         } else {
             in.addValue("ForDate", java.sql.Date.valueOf(queryTime.toLocalDate()), Types.DATE);
+            in.addValue("AsOf", null, Types.TIMESTAMP);
         }
 
         List<Map<String, Object>> rs1 = Collections.emptyList();
