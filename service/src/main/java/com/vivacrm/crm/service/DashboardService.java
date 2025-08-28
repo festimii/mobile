@@ -66,7 +66,7 @@ public class DashboardService {
     @Cacheable(value = "dashboard", key = "'metrics'")
     @Transactional(readOnly = true)
     public DashboardPayload getMetrics() {
-        return loadMetrics(LocalDateTime.now());
+        return loadMetrics(null);
     }
 
     /**
@@ -84,7 +84,7 @@ public class DashboardService {
     @CachePut(value = "dashboard", key = "'metrics'")
     @Transactional(readOnly = true)
     public DashboardPayload refreshMetrics() {
-        return loadMetrics(LocalDateTime.now());
+        return loadMetrics(null);
     }
 
     /** Evict cached payload (manual reset). */
@@ -104,17 +104,18 @@ public class DashboardService {
     // ----------------- internal loader -----------------
     @Transactional(readOnly = true)
     protected DashboardPayload loadMetrics(LocalDateTime dateTime) {
-        final LocalDate today = LocalDate.now();
-        final LocalDateTime now = (dateTime != null) ? dateTime : LocalDateTime.now();
+        final LocalDateTime now = LocalDateTime.now();
+        final LocalDate today = now.toLocalDate();
+        final LocalDateTime queryTime = (dateTime != null) ? dateTime : now;
 
         MapSqlParameterSource in = new MapSqlParameterSource();
 
 // Wrapper logic: NULL => today (cut off to last completed hour inside SP)
 // Non-null & not today => historic full day
-        if (dateTime == null || dateTime.toLocalDate().isEqual(today)) {
+        if (dateTime == null || queryTime.toLocalDate().isEqual(today)) {
             in.addValue("ForDate", null, Types.DATE);
         } else {
-            in.addValue("ForDate", java.sql.Date.valueOf(dateTime.toLocalDate()), Types.DATE);
+            in.addValue("ForDate", java.sql.Date.valueOf(queryTime.toLocalDate()), Types.DATE);
         }
 
         List<Map<String, Object>> rs1 = Collections.emptyList();
