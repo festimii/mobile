@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -40,7 +42,8 @@ public class StoreKpiService {
         if (fromCache != null) return fromCache;
 
         // Fallback: fetch and cache only the requested store
-        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+        Timestamp asOf = Timestamp.valueOf(LocalDateTime.now());
+        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI @AsOf = ?", asOf);
         Map<String, Object> row = rows.stream()
                 .filter(r -> Objects.toString(r.get("StoreId"), "").equals(String.valueOf(storeId)))
                 .findFirst()
@@ -56,7 +59,8 @@ public class StoreKpiService {
     @CachePut(cacheNames = CACHE_NAME, key = "#storeId")
     @Transactional(readOnly = true)
     public StoreKpi refreshStoreKpi(int storeId) {
-        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+        Timestamp asOf = Timestamp.valueOf(LocalDateTime.now());
+        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI @AsOf = ?", asOf);
         Map<String, Object> row = rows.stream()
                 .filter(r -> Objects.toString(r.get("StoreId"), "").equals(String.valueOf(storeId)))
                 .findFirst()
@@ -75,7 +79,8 @@ public class StoreKpiService {
         Cache cache = getCache();
         if (cache == null) return;
 
-        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+        Timestamp asOf = Timestamp.valueOf(LocalDateTime.now());
+        List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI @AsOf = ?", asOf);
         cache.clear();
         for (Map<String, Object> r : rows) {
             StoreKpi kpi = mapRow(r);
@@ -96,7 +101,8 @@ public class StoreKpiService {
     private void warmCacheIfNeeded() {
         if (cacheWarmed.get()) return;
         if (cacheWarmed.compareAndSet(false, true)) {
-            List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI");
+            Timestamp asOf = Timestamp.valueOf(LocalDateTime.now());
+            List<Map<String, Object>> rows = jdbc.queryForList("EXEC SP_GetStoreKPI @AsOf = ?", asOf);
             Cache cache = getCache();
             if (cache == null) return;
 

@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -53,7 +54,9 @@ public class DashboardService {
                 .withProcedureName("SP_GetDashboardData")  // <-- wrapper
                 .withoutProcedureColumnMetaDataAccess()
                 .declareParameters(
-                        new SqlParameter("ForDate", Types.DATE) // <-- only one IN param
+                        new SqlParameter("ForDate", Types.DATE),
+                        new SqlParameter("AsOf", Types.TIMESTAMP),
+                        new SqlParameter("CutoffHour", Types.INTEGER)
                 )
                 .returningResultSet("#result-set-1", new ColumnMapRowMapper())
                 .returningResultSet("#result-set-2", new ColumnMapRowMapper())
@@ -110,12 +113,12 @@ public class DashboardService {
 
         MapSqlParameterSource in = new MapSqlParameterSource();
 
-// Wrapper logic: NULL => today (cut off to last completed hour inside SP)
-// Non-null & not today => historic full day
-        if (dateTime == null || queryTime.toLocalDate().isEqual(today)) {
+        if (queryTime.toLocalDate().isEqual(today)) {
             in.addValue("ForDate", null, Types.DATE);
+            in.addValue("AsOf", Timestamp.valueOf(queryTime), Types.TIMESTAMP);
         } else {
             in.addValue("ForDate", java.sql.Date.valueOf(queryTime.toLocalDate()), Types.DATE);
+            in.addValue("AsOf", null, Types.TIMESTAMP);
         }
 
         List<Map<String, Object>> rs1 = Collections.emptyList();
