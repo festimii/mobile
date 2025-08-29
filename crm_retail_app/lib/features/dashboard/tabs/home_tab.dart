@@ -613,13 +613,13 @@ class HomeTabState extends State<HomeTab> {
     });
   }
 
-  void _setFuture() {
-    _future = _api.fetchDashboard(date: _currentDate);
+  void _setFuture({bool refresh = true}) {
+    _future = _api.fetchDashboard(date: _currentDate, refresh: refresh);
     _timeLeft = _calculateTimeLeft();
   }
 
   Future<void> _refreshData() async {
-    setState(_setFuture);
+    setState(() => _setFuture());
     await _future;
   }
 
