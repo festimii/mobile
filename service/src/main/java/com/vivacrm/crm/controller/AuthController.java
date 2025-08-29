@@ -1,19 +1,27 @@
 package com.vivacrm.crm.controller;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.ResponseCookie;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.vivacrm.crm.security.JwtService;
+import com.vivacrm.crm.user.DeviceTokenService;
 import com.vivacrm.crm.user.User;
 import com.vivacrm.crm.user.UserRepository;
 import com.vivacrm.crm.user.UserService;
-import com.vivacrm.crm.user.DeviceTokenService;
-import com.vivacrm.crm.security.JwtService;
 
 import java.time.Duration;
 import java.util.Map;
@@ -21,6 +29,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
@@ -65,29 +75,26 @@ public class AuthController {
         }
         boolean rememberDevice = Boolean.parseBoolean(body.getOrDefault("rememberDevice", "false"));
 
-        // 🔍 Log inputs
-        System.out.println("🔐 Login attempt:");
-        System.out.println("  Username: " + username);
-        System.out.println("  Password: " + (password != null ? "*".repeat(password.length()) : null));
-        System.out.println("  OTP: " + otp);
-        System.out.println("  Body deviceToken: " + body.get("deviceToken"));
-        System.out.println("  Cookie deviceToken: " + deviceTokenCookie);
-        System.out.println("  Effective deviceToken used: " + deviceToken);
-        System.out.println("  Remember device: " + rememberDevice);
+        // Log inputs
+        log.info("Login attempt for user {}", username);
+        log.debug("Password length: {}", password != null ? password.length() : null);
+        log.debug("OTP provided: {}", otp != null);
+        log.debug("Body deviceToken: {}, Cookie deviceToken: {}, Effective: {}", body.get("deviceToken"), deviceTokenCookie, deviceToken);
+        log.debug("Remember device: {}", rememberDevice);
 
         try {
-            Authentication auth = authenticationManager.authenticate(
+            authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password));
 
             User user = userRepository.findByUsername(username).orElseThrow();
             String jwtToken = jwtService.generateToken(username);
 
             if (user.isTotpEnabled()) {
-                System.out.println("🔐 TOTP is enabled for user.");
+                log.info("TOTP is enabled for user {}", username);
 
                 // ✅ If client sent a deviceToken and it's valid, skip OTP
                 if (deviceToken != null && deviceTokenService.isValid(user, deviceToken)) {
-                    System.out.println("✅ Valid device token. Skipping OTP.");
+                    log.debug("Valid device token provided; skipping OTP verification");
 
                     ResponseCookie cookie = ResponseCookie.from("DEVICE_TOKEN", deviceToken)
                             .httpOnly(true)
@@ -106,13 +113,13 @@ public class AuthController {
 
                 // ❌ OTP is required if no valid deviceToken
                 if (otp == null) {
-                    System.out.println("❌ OTP required but not provided.");
+                    log.warn("OTP required but not provided for user {}", username);
                     return ResponseEntity.status(403).body("OTP required");
                 }
 
                 // ✅ OTP was provided, verify it
                 boolean isValid = userService.verifyTotp(user, otp);
-                System.out.println("🔍 OTP verification result: " + isValid);
+                log.debug("OTP verification result: {}", isValid);
 
                 if (!isValid) {
                     return ResponseEntity.status(403).body("Invalid OTP");
@@ -121,7 +128,7 @@ public class AuthController {
                 // ✅ OTP valid — generate deviceToken if rememberDevice is true
                 if (rememberDevice) {
                     String newToken = deviceTokenService.createToken(user);
-                    System.out.println("🔑 Generated new device token: " + newToken);
+                    log.debug("Generated new device token for user {}", username);
 
                     ResponseCookie cookie = ResponseCookie.from("DEVICE_TOKEN", newToken)
                             .httpOnly(true)
@@ -139,7 +146,7 @@ public class AuthController {
                 }
 
                 // ✅ OTP accepted but no token stored
-                System.out.println("✅ OTP accepted, but device not remembered.");
+                log.debug("OTP accepted but device not remembered");
                 return ResponseEntity.ok(Map.of(
                         "authenticated", true,
                         "token", jwtToken
@@ -147,14 +154,14 @@ public class AuthController {
             }
 
 
-            System.out.println("✅ TOTP is not enabled. Login successful.");
+            log.info("TOTP not enabled; login successful for user {}", username);
             return ResponseEntity.ok(Map.of(
                     "authenticated", true,
                     "token", jwtToken
             ));
 
         } catch (AuthenticationException e) {
-            System.out.println("❌ Authentication failed: " + e.getMessage());
+            log.warn("Authentication failed for user {}: {}", username, e.getMessage());
             return ResponseEntity.status(401).build();
         }
     }
