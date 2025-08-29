@@ -592,19 +592,11 @@ class _HomeTabState extends State<HomeTab> {
   @override
   void initState() {
     super.initState();
+    _api = ApiService(authToken: context.read<UserProvider>().authToken);
+    _currentDate = context.read<DateProvider>().selectedDate;
+    _setFuture();
     _timeLeft = _calculateTimeLeft();
     _startTimer();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _api = ApiService(authToken: context.read<UserProvider>().authToken);
-    final date = context.watch<DateProvider>().selectedDate;
-    if (_currentDate != date) {
-      _currentDate = date;
-      _setFuture();
-    }
   }
 
   void _startTimer() {
@@ -643,6 +635,12 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    final date = context.watch<DateProvider>().selectedDate;
+    if (_currentDate != date) {
+      _currentDate = date;
+      _setFuture();
+    }
+
     return FutureBuilder<DashboardData>(
       future: _future,
       builder: (context, snapshot) {
