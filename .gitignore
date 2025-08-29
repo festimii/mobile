@@ -1,2 +1,10 @@
 service/crm.db
 flutter/
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+.env
+.venv/
+service_fastapi/service.db
