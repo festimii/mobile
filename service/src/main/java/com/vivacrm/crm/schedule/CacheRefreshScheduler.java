@@ -5,7 +5,6 @@ import com.vivacrm.crm.service.DashboardService;
 import com.vivacrm.crm.service.StoreKpiService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -29,7 +28,6 @@ public class CacheRefreshScheduler {
     }
 
     /** Refresh caches for dashboard payload and store KPI entries. */
-    @Transactional(readOnly = true)
     public synchronized void refreshAll() {
         try {
             dashboardService.refreshMetrics();
