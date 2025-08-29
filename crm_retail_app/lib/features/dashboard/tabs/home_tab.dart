@@ -618,8 +618,9 @@ class HomeTabState extends State<HomeTab> {
     _timeLeft = _calculateTimeLeft();
   }
 
-  void _refreshData() {
+  Future<void> _refreshData() async {
     setState(_setFuture);
+    await _future;
   }
 
   /// Triggers a fresh fetch of dashboard data using the current parameters.
@@ -667,75 +668,79 @@ class HomeTabState extends State<HomeTab> {
                   ? 260
                   : MediaQuery.of(context).size.width / 2 - 22;
 
-          content = SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Retail KPIs",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: metrics
-                      .map(
-                        (metric) => SizedBox(
-                          width: cardWidth,
-                          child: SummaryCard(metric: metric),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  "Weekly Sales Trend",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SalesTrendCard(
-                      weekData: weekSales,
-                      hourData: hourSales,
+          content = RefreshIndicator(
+            onRefresh: _refreshData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Retail KPIs",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
-                ),
-                const SizedBox(height: 38),
-                Text(
-                  "Store Comparison",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: metrics
+                        .map(
+                          (metric) => SizedBox(
+                            width: cardWidth,
+                            child: SummaryCard(metric: metric),
+                          ),
+                        )
+                        .toList(),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: FilterableAnimatedStoreSalesTable(
-                      salesData: storeSales,
+                  const SizedBox(height: 32),
+                  Text(
+                    "Weekly Sales Trend",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SalesTrendCard(
+                        weekData: weekSales,
+                        hourData: hourSales,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 38),
+                  Text(
+                    "Store Comparison",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: FilterableAnimatedStoreSalesTable(
+                        salesData: storeSales,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }
