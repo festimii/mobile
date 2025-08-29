@@ -16,11 +16,13 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    HomeTab(),
-    SalesTab(),
-    InventoryTab(),
-    SettingsTab(),
+  final GlobalKey<HomeTabState> _homeTabKey = GlobalKey<HomeTabState>();
+
+  late final List<Widget> _pages = [
+    HomeTab(key: _homeTabKey),
+    const SalesTab(),
+    const InventoryTab(),
+    const SettingsTab(),
   ];
 
   final List<String> _titles = ['Stores', 'B2B/C', 'Stock', 'Settings'];
@@ -31,6 +33,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text(_titles[_currentIndex]),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              if (_currentIndex == 0) {
+                _homeTabKey.currentState?.refresh();
+              }
+            },
+          ),
           Consumer<DateProvider>(
             builder: (context, dateProvider, _) => IconButton(
               icon: const Icon(Icons.calendar_today),

@@ -571,10 +571,11 @@ class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
   @override
-  State<HomeTab> createState() => _HomeTabState();
+  State<HomeTab> createState() => HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> {
+/// Public state class so parents can trigger a manual refresh via [GlobalKey].
+class HomeTabState extends State<HomeTab> {
   late ApiService _api;
   late Future<DashboardData> _future;
 
@@ -619,6 +620,11 @@ class _HomeTabState extends State<HomeTab> {
 
   void _refreshData() {
     setState(_setFuture);
+  }
+
+  /// Triggers a fresh fetch of dashboard data using the current parameters.
+  void refresh() {
+    _refreshData();
   }
 
   String _formatDuration(Duration d) {
