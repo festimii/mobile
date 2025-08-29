@@ -65,8 +65,13 @@ public class CacheRefreshScheduler {
         }
     }
 
-    @Scheduled(cron = "0 5 * * * *")
+    @Scheduled(fixedRateString = "#{@cacheRefreshScheduler.refreshIntervalMillis}")
     public void scheduledRefresh() {
         refreshAll();
+    }
+
+    /** Expose refresh interval for SpEL used by @Scheduled. */
+    public long getRefreshIntervalMillis() {
+        return refreshInterval.toMillis();
     }
 }
