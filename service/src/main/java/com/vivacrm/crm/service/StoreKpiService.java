@@ -7,13 +7,16 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
+import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -27,15 +30,25 @@ public class StoreKpiService {
     private final JdbcTemplate jdbc;
     private final CacheManager cacheManager;
     private final AtomicBoolean cacheWarmed = new AtomicBoolean(false);
+    private final SimpleJdbcCall spGetStoreKpi;
 
     public StoreKpiService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbc,
                            CacheManager cacheManager) {
         jdbc.setResultsMapCaseInsensitive(true);
         this.jdbc = jdbc;
         this.cacheManager = cacheManager;
+
+        this.spGetStoreKpi = new SimpleJdbcCall(jdbc)
+                .withSchemaName("dbo")
+                .withProcedureName("SP_GetStoreKPI")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("ForDate", Types.DATE),
+                        new SqlParameter("AsOf", Types.TIMESTAMP)
+                )
+                .returningResultSet("rs", new ColumnMapRowMapper());
     }
 
-    @Transactional(readOnly = true)
     public StoreKpi getStoreKpi(int storeId) {
         warmCacheIfNeeded();
 
@@ -56,7 +69,6 @@ public class StoreKpiService {
     }
 
     /** Fetch KPI for a specific date/time (bypasses cache). */
-    @Transactional(readOnly = true)
     public StoreKpi getStoreKpi(int storeId, LocalDateTime forDate) {
         List<Map<String, Object>> rows = fetchRows(forDate);
         Map<String, Object> row = rows.stream()
@@ -68,7 +80,6 @@ public class StoreKpiService {
 
     /** Force-refresh cache for a single store and return fresh KPI. */
     @CachePut(cacheNames = CACHE_NAME, key = "#storeId")
-    @Transactional(readOnly = true)
     public StoreKpi refreshStoreKpi(int storeId) {
         List<Map<String, Object>> rows = fetchRows(null);
         Map<String, Object> row = rows.stream()
@@ -79,12 +90,10 @@ public class StoreKpiService {
         return mapRow(row);
     }
 
-    @Transactional(readOnly = true)
     public void scheduledRefreshAllStores() {
         refreshAllStores();
     }
 
-    @Transactional(readOnly = true)
     public void refreshAllStores() {
         Cache cache = getCache();
         if (cache == null) return;
@@ -122,19 +131,26 @@ public class StoreKpiService {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> fetchRows(LocalDateTime dateTime) {
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
         LocalDateTime queryTime = (dateTime != null ? dateTime : now)
                 .withMinute(0).withSecond(0).withNano(0);
 
+        MapSqlParameterSource in = new MapSqlParameterSource();
+
         if (dateTime == null || queryTime.toLocalDate().isEqual(today)) {
-            Timestamp asOf = Timestamp.valueOf(queryTime);
-            return jdbc.queryForList("EXEC SP_GetStoreKPI @ForDate=?, @AsOf=?", null, asOf);
+            in.addValue("ForDate", null, Types.DATE);
+            in.addValue("AsOf", Timestamp.valueOf(queryTime), Types.TIMESTAMP);
         } else {
-            java.sql.Date forDate = java.sql.Date.valueOf(queryTime.toLocalDate());
-            return jdbc.queryForList("EXEC SP_GetStoreKPI @ForDate=?, @AsOf=?", forDate, null);
+            in.addValue("ForDate", java.sql.Date.valueOf(queryTime.toLocalDate()), Types.DATE);
+            in.addValue("AsOf", null, Types.TIMESTAMP);
         }
+
+        Map<String, Object> out = spGetStoreKpi.execute(in);
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) out.get("rs");
+        return rows == null ? Collections.emptyList() : rows;
     }
 
     private Cache getCache() { return cacheManager.getCache(CACHE_NAME); }

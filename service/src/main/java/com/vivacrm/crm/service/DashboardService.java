@@ -12,7 +12,6 @@ import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -64,7 +63,6 @@ public class DashboardService {
 
     /** Cached read: stays cached until explicitly refreshed/evicted. */
     @Cacheable(value = "dashboard", key = "'metrics'")
-    @Transactional(readOnly = true)
     public DashboardPayload getMetrics() {
         return loadMetrics(null);
     }
@@ -75,14 +73,12 @@ public class DashboardService {
      * for the same historical date.
      */
     @Cacheable(value = "dashboard", key = "'metrics:' + #forDate.toLocalDate()")
-    @Transactional(readOnly = true)
     public DashboardPayload getMetrics(LocalDateTime forDate) {
         return loadMetrics(forDate);
     }
 
     /** Force-refresh cache and return fresh payload. */
     @CachePut(value = "dashboard", key = "'metrics'")
-    @Transactional(readOnly = true)
     public DashboardPayload refreshMetrics() {
         return loadMetrics(null);
     }
@@ -92,7 +88,6 @@ public class DashboardService {
     public void resetMetrics() { /* no-op */ }
 
     // ----------------- internal loader -----------------
-    @Transactional(readOnly = true)
     protected DashboardPayload loadMetrics(LocalDateTime dateTime) {
         final LocalDateTime now = LocalDateTime.now();
         final LocalDate today = now.toLocalDate();
