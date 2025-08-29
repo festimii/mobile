@@ -3,9 +3,10 @@ package com.vivacrm.crm.schedule;
 
 import com.vivacrm.crm.service.DashboardService;
 import com.vivacrm.crm.service.StoreKpiService;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -43,6 +44,13 @@ public class CacheRefreshScheduler {
         } catch (Exception ignore) { /* log if desired */ }
 
         lastRefresh = LocalDateTime.now(zoneId);
+    }
+
+    /** Warm caches at application startup so store KPIs and dashboard metrics
+     *  are immediately available and refreshed together. */
+    @PostConstruct
+    public void warmOnStartup() {
+        refreshAll();
     }
 
     /**
