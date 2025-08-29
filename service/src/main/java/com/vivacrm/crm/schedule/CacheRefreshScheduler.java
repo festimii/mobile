@@ -65,13 +65,8 @@ public class CacheRefreshScheduler {
         }
     }
 
-    @Scheduled(fixedRateString = "#{@cacheRefreshScheduler.refreshIntervalMillis}")
+    @Scheduled(cron = "${app.cache.refresh.cron:0 0 * * * *}", zone = "${app.timezone:UTC}")
     public void scheduledRefresh() {
         refreshAll();
-    }
-
-    /** Expose refresh interval for SpEL used by @Scheduled. */
-    public long getRefreshIntervalMillis() {
-        return refreshInterval.toMillis();
     }
 }
