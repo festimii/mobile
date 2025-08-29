@@ -65,7 +65,7 @@ public class CacheRefreshScheduler {
         }
     }
 
-    @Scheduled(cron = "0 5 * * * *")
+    @Scheduled(fixedDelayString = "#{T(java.time.Duration).parse('${app.cache.refresh.interval:PT1H}').toMillis()}")
     public void scheduledRefresh() {
         refreshAll();
     }
