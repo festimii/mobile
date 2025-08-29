@@ -3,6 +3,7 @@ package com.vivacrm.crm.service;
 
 import com.vivacrm.crm.service.dto.StoreKpi;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,6 +20,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,12 +33,15 @@ public class StoreKpiService {
     private final CacheManager cacheManager;
     private final AtomicBoolean cacheWarmed = new AtomicBoolean(false);
     private final SimpleJdbcCall spGetStoreKpi;
+    private final ZoneId zoneId;
 
     public StoreKpiService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbc,
-                           CacheManager cacheManager) {
+                           CacheManager cacheManager,
+                           @Value("${app.timezone:UTC}") String zone) {
         jdbc.setResultsMapCaseInsensitive(true);
         this.jdbc = jdbc;
         this.cacheManager = cacheManager;
+        this.zoneId = ZoneId.of(zone);
 
         this.spGetStoreKpi = new SimpleJdbcCall(jdbc)
                 .withSchemaName("dbo")
@@ -133,7 +138,7 @@ public class StoreKpiService {
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> fetchRows(LocalDateTime dateTime) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(zoneId);
         LocalDate today = now.toLocalDate();
         LocalDateTime queryTime = (dateTime != null ? dateTime : now)
                 .withMinute(0).withSecond(0).withNano(0);

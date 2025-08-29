@@ -3,6 +3,7 @@ package com.vivacrm.crm.service;
 
 import com.vivacrm.crm.service.dto.*;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,6 +19,7 @@ import java.math.RoundingMode;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -41,10 +43,13 @@ public class DashboardService {
 
     private final JdbcTemplate sqlServerJdbc;
     private final SimpleJdbcCall spResultSet; // result-set only (no OUT-param fallback)
+    private final ZoneId zoneId;
 
-    public DashboardService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbcTemplate) {
+    public DashboardService(@Qualifier("mssqlJdbcTemplate") JdbcTemplate jdbcTemplate,
+                            @Value("${app.timezone:UTC}") String zone) {
         jdbcTemplate.setResultsMapCaseInsensitive(true);
         this.sqlServerJdbc = jdbcTemplate;
+        this.zoneId = ZoneId.of(zone);
 
         this.spResultSet = new SimpleJdbcCall(sqlServerJdbc)
                 .withSchemaName("dbo")
@@ -89,7 +94,7 @@ public class DashboardService {
 
     // ----------------- internal loader -----------------
     protected DashboardPayload loadMetrics(LocalDateTime dateTime) {
-        final LocalDateTime now = LocalDateTime.now();
+        final LocalDateTime now = LocalDateTime.now(zoneId);
         final LocalDate today = now.toLocalDate();
         final LocalDateTime queryTime = ((dateTime != null) ? dateTime : now)
                 .withMinute(0).withSecond(0).withNano(0);
