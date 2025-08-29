@@ -13,10 +13,20 @@ class ApiService {
   String? authToken;
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
-  Uri _uriWithDate(String path, DateTime? date) {
-    if (date == null) return _uri(path);
-    final formatted = date.toIso8601String();
-    return Uri.parse('$baseUrl$path?forDate=$formatted');
+
+  /// Builds a [Uri] for [path] and optionally adds `forDate` and `refresh`
+  /// query parameters.
+  Uri _uriWithDate(String path, DateTime? date, {bool refresh = false}) {
+    final query = <String, String>{};
+    if (date != null) {
+      query['forDate'] = date.toIso8601String();
+    }
+    if (refresh) {
+      query['refresh'] = 'true';
+    }
+    return Uri.parse('$baseUrl$path').replace(
+      queryParameters: query.isEmpty ? null : query,
+    );
   }
 
   Map<String, String> _authHeaders([Map<String, String>? headers]) {
@@ -75,9 +85,9 @@ class ApiService {
     }
   }
 
-  Future<List<SummaryMetric>> fetchMetrics({DateTime? date}) async {
+  Future<List<SummaryMetric>> fetchMetrics({DateTime? date, bool refresh = false}) async {
     final res = await http.get(
-      _uriWithDate(ApiRoutes.metrics, date),
+      _uriWithDate(ApiRoutes.metrics, date, refresh: refresh),
       headers: _authHeaders(),
     );
     final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -107,9 +117,9 @@ class ApiService {
   /// Fetches dashboard data including metrics, sales series and store
   /// comparisons. The backend returns a `DashboardPayload` object which is
   /// mapped into strongly typed models for the UI layer.
-  Future<DashboardData> fetchDashboard({DateTime? date}) async {
+  Future<DashboardData> fetchDashboard({DateTime? date, bool refresh = false}) async {
     final res = await http.get(
-      _uriWithDate(ApiRoutes.metrics, date),
+      _uriWithDate(ApiRoutes.metrics, date, refresh: refresh),
       headers: _authHeaders(),
     );
     final data = jsonDecode(res.body) as Map<String, dynamic>;
